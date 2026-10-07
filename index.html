@@ -110,7 +110,8 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 .banner button{padding:3px 10px;font-size:13px}
 .paper{flex:1;min-height:0;display:flex;padding:26px 24px 0}
 .sheet{font-size:var(--ed-size);width:min(100%,calc(var(--ed-wch) * 1em));margin:0 auto;display:flex;flex-direction:column;min-height:0;min-width:0;flex:0 1 auto;position:relative}
-.tw-line{position:absolute;left:0;height:0;border-top:1px solid var(--line);pointer-events:none}
+.tw-line{position:absolute;left:0;height:0;border-top:1px solid var(--line);pointer-events:none;z-index:0}
+.sheet .body{position:relative;z-index:1}
 input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-spacing:var(--ed-ls);border:0;border-bottom:1px solid var(--line);background:transparent;padding:4px 0 12px;outline:0;width:100%;border-radius:0}
 input.title:focus{border-bottom-color:var(--accent)}
 .body{flex:1;min-height:0;resize:none;border:0;outline:0;background:transparent;font-family:var(--ed-font);font-size:1em;letter-spacing:var(--ed-ls);line-height:var(--ed-lh);padding:18px 2px 48px;caret-color:var(--accent);word-break:keep-all;overflow-wrap:anywhere}
@@ -773,7 +774,7 @@ function twLayout() {
   if (!H) return;
   const pad = Math.max(18, Math.round(H / 2 - lh / 2));
   b.style.paddingTop = pad + 'px'; b.style.paddingBottom = pad + 'px';
-  el.twLine.style.top = Math.round(b.offsetTop + H / 2 + lh / 2) + 'px';
+  el.twLine.style.top = Math.round(b.offsetTop + H / 2 + lh / 2) + 'px'; // 지금 줄과 다음 줄의 경계(글자 사이 빈 공간 가운데)
   // 제목 밑줄과 같은 색, 스크롤바 앞에서 끝나게: 글이 놓이는 폭에 맞춘다
   el.twLine.style.left = b.offsetLeft + 'px';
   el.twLine.style.width = Math.max(0, b.clientWidth) + 'px';
@@ -821,10 +822,15 @@ function twCaretY() {
   let li = 0; for (let i = v.indexOf('\n'); i !== -1 && i < pos; i = v.indexOf('\n', i + 1)) li++; // 커서가 있는 줄 번호
   const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
   const inner = TW.inner;
+  // 표식(span)의 offsetTop은 줄 칸 맨 위가 아니라 글자 영역 위를 가리키므로, 빈 줄일 때 값을 빼서 줄 칸 기준으로 맞춘다
+  if (TW.c0sig !== TW.sig) {
+    inner.textContent = ''; const z = document.createElement('span'); z.textContent = '​'; inner.appendChild(z);
+    TW.c0 = z.offsetTop; TW.c0sig = TW.sig;
+  }
   inner.textContent = v.slice(lineStart, pos);
   const mk = document.createElement('span'); mk.textContent = '​'; inner.appendChild(mk);
   const padTop = parseFloat(getComputedStyle(b).paddingTop) || 0;
-  return padTop + TW.mirror.children[li].offsetTop + mk.offsetTop;
+  return padTop + TW.mirror.children[li].offsetTop + (mk.offsetTop - TW.c0);
 }
 function twCenter() {
   if (!cfg.typewriter || !S.cur || el.paper.hidden) return;
