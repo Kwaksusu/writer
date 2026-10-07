@@ -872,7 +872,7 @@ function twScrollEnd() {
   const lh = twLineHeight();
   if (Math.abs(twCaretY() + lh / 2 - b.scrollTop - b.clientHeight / 2) < lh * 0.5) return; // 이미 가운데(타이핑으로 생긴 스크롤)
   const pos = twCaretAtCenter();
-  b.setSelectionRange(pos, pos);
+  b.setSelectionRange(pos, pos); UN.force = true; unSyncCaret();
   updateSelection(); twCenter();
 }
 function twToggle() {
@@ -881,6 +881,55 @@ function twToggle() {
   if (S.cur) el.body.focus();
   toast(cfg.typewriter ? '타자기 모드 켬: 지금 쓰는 줄이 가운데에 머뭅니다' : '타자기 모드 끔');
 }
+
+/* ---------- 되돌리기(Ctrl/Cmd+Z): 글자가 아니라 단어 단위 ---------- */
+// 새 단어 시작(공백 뒤 첫 글자), 줄바꿈, 붙여넣기, 1.5초 쉼, 커서 이동, 입력↔지우기 전환을 묶음 경계로 삼는다.
+const UN = { u: [], r: [], last: null, lastType: '', lastT: 0, applying: false, force: false, size: 0 };
+const UN_MAX_CHARS = 20000000; // 기록 전체 글자 수 상한(긴 원고에서 메모리 폭주 방지)
+const unState = () => ({ v: el.body.value, s: el.body.selectionStart, e: el.body.selectionEnd });
+function unReset() { UN.u = []; UN.r = []; UN.size = 0; UN.last = unState(); UN.lastType = ''; UN.lastT = 0; UN.force = false; }
+function unPush(st) {
+  const top = UN.u[UN.u.length - 1];
+  if (top && top.v === st.v) return;
+  UN.u.push(st); UN.size += st.v.length;
+  while (UN.u.length > 1 && (UN.size > UN_MAX_CHARS || UN.u.length > 500)) UN.size -= UN.u.shift().v.length;
+}
+function unTrack(e) {
+  if (UN.applying) return;
+  const now = Date.now(), prev = UN.last || unState(), t = e.inputType || '';
+  const kind = /^delete/.test(t) ? 'del' : /^insert(Text|CompositionText|ReplacementText)$/.test(t) ? 'ins' : /^insert(LineBreak|Paragraph)$/.test(t) ? 'br' : 'other';
+  let boundary = UN.force || kind !== UN.lastType || now - UN.lastT > 1500 || kind === 'br' || kind === 'other' || prev.s !== prev.e;
+  if (!boundary && kind === 'ins' && t !== 'insertCompositionText') {
+    const before = prev.v.charAt(prev.s - 1), d = e.data || '';
+    if (/\S/.test(d.charAt(0)) && (/\s/.test(before) || prev.s === 0)) boundary = true; // 새 단어 시작
+  }
+  if (!boundary && t === 'insertCompositionText') {
+    const before = prev.v.charAt(prev.s - 1);
+    if (UN.composeStart && /\s/.test(before)) boundary = true; // 공백 뒤 첫 음절 조합 시작
+  }
+  UN.composeStart = false;
+  if (boundary) { unPush(prev); UN.r = []; }
+  UN.force = false; UN.last = unState(); UN.lastType = kind; UN.lastT = now;
+}
+function unApply(st) {
+  const b = el.body;
+  UN.applying = true; b.value = st.v; b.setSelectionRange(st.s, st.e); UN.applying = false;
+  UN.last = unState(); UN.lastType = 'undo'; UN.force = true;
+  onEdit(); updateSelection(); twSchedule();
+}
+function unUndo() {
+  const cur = unState();
+  let t = UN.u.pop();
+  while (t && t.v === cur.v) { UN.size -= t.v.length; t = UN.u.pop(); }
+  if (!t) return;
+  UN.size -= t.v.length; UN.r.push(cur); unApply(t);
+}
+function unRedo() {
+  const t = UN.r.pop(); if (!t) return;
+  unPush(unState()); unApply(t);
+}
+// 값이 그대로면 커서 위치만 최신으로(되돌릴 때 커서가 엉뚱한 데 가지 않게)
+function unSyncCaret() { if (UN.last && el.body.value === UN.last.v) UN.last = unState(); }
 
 const DKEY = 'writer.draft';
 function scheduleDraft() {
@@ -1015,7 +1064,7 @@ function applyDisk(cur, disk) {
   Object.assign(cur, Core.makeDoc(cur.fileName, disk.text, disk.mtime, disk.enc));
   const st = el.body.scrollTop, a = Math.min(el.body.selectionStart, cur.text.length);
   S.savedTitle = cur.title; S.savedBody = cur.text;
-  el.title.value = cur.title; el.body.value = cur.text;
+  el.title.value = cur.title; el.body.value = cur.text; unReset();
   el.body.scrollTop = st; try { el.body.setSelectionRange(a, a); } catch (e) {}
   S.dirty = false; S.firstDirty = 0; clearTimeout(S.timer); clearDraft();
   setStatus('saved', { time: fmtTime(disk.mtime || Date.now()) });
@@ -1084,7 +1133,7 @@ async function openDoc(doc) {
     else clearDraft();
   }
   el.body.scrollTop = 0; el.body.setSelectionRange(0, 0); el.cSelCell.hidden = true;
-  twLayout();
+  twLayout(); unReset();
   saveJSON('writer.last', { work: S.work.name, file: doc.fileName });
   onEdit(); if (!S.dirty) setStatus('saved', { time: fmtTime(doc.mtime || Date.now()) });
   updateLive(); renderList();
@@ -1466,7 +1515,23 @@ function wire() {
   };
   el.btnSide.onclick = () => { cfg.sideOpen = !cfg.sideOpen; saveCfg(); el.app.classList.toggle('side-hidden', !cfg.sideOpen); twLayout(); twSchedule(); };
   el.title.addEventListener('input', onEdit);
-  el.body.addEventListener('input', () => { onEdit(); updateSelection(); });
+  el.body.addEventListener('input', e => { unTrack(e); onEdit(); updateSelection(); });
+  // 되돌리기 키: Ctrl/Cmd+Z, 다시 실행: Ctrl/Cmd+Shift+Z, Ctrl+Y
+  el.body.addEventListener('keydown', e => {
+    if (e.isComposing || e.altKey) return;
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) unRedo(); else unUndo(); return; }
+    if (e.ctrlKey && !e.metaKey && e.code === 'KeyY') { e.preventDefault(); unRedo(); return; }
+    if (/^(Arrow|Page|Home|End)/.test(e.key)) UN.force = true; // 커서를 옮기면 다음 입력은 새 묶음
+  });
+  // 메뉴(우클릭·편집 메뉴)의 실행 취소도 같은 방식으로
+  el.body.addEventListener('beforeinput', e => {
+    if (e.inputType === 'historyUndo') { e.preventDefault(); unUndo(); }
+    else if (e.inputType === 'historyRedo') { e.preventDefault(); unRedo(); }
+  });
+  el.body.addEventListener('compositionstart', () => { UN.composeStart = true; });
+  el.body.addEventListener('mousedown', () => { UN.force = true; });
+  ['keyup', 'mouseup', 'select'].forEach(ev => el.body.addEventListener(ev, unSyncCaret));
   ['select', 'keyup', 'mouseup', 'focus'].forEach(ev => el.body.addEventListener(ev, updateSelection));
   el.title.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); el.body.focus(); } });
   el.title.addEventListener('blur', () => {
