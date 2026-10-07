@@ -8,7 +8,7 @@
 <script>
 // 웹 주소(https)로 열었을 때만: 앱 설치 정보 + 오프라인 캐시. 로컬 파일(file://)로 열면 아무것도 안 함.
 if (/^https?:$/.test(location.protocol)) {
-  [['manifest', 'manifest.webmanifest'], ['icon', 'favicon.png'], ['apple-touch-icon', 'apple-touch-icon.png']].forEach(([rel, href]) => {
+  [['manifest', 'manifest.webmanifest'], ['icon', 'favicon-nib.png'], ['apple-touch-icon', 'apple-touch-icon-nib.png']].forEach(([rel, href]) => {
     const l = document.createElement('link'); l.rel = rel; l.href = href; document.head.appendChild(l);
   });
   if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
