@@ -109,7 +109,8 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 .banner.info{background:var(--warn-bg);color:var(--warn)}
 .banner button{padding:3px 10px;font-size:13px}
 .paper{flex:1;min-height:0;display:flex;padding:26px 24px 0}
-.sheet{font-size:var(--ed-size);width:min(100%,calc(var(--ed-wch) * 1em));margin:0 auto;display:flex;flex-direction:column;min-height:0;min-width:0;flex:0 1 auto}
+.sheet{font-size:var(--ed-size);width:min(100%,calc(var(--ed-wch) * 1em));margin:0 auto;display:flex;flex-direction:column;min-height:0;min-width:0;flex:0 1 auto;position:relative}
+.tw-line{position:absolute;left:-12px;right:-12px;height:0;border-top:1px solid var(--accent);opacity:.22;pointer-events:none}
 input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-spacing:var(--ed-ls);border:0;border-bottom:1px solid var(--line);background:transparent;padding:4px 0 12px;outline:0;width:100%;border-radius:0}
 input.title:focus{border-bottom-color:var(--accent)}
 .body{flex:1;min-height:0;resize:none;border:0;outline:0;background:transparent;font-family:var(--ed-font);font-size:1em;letter-spacing:var(--ed-ls);line-height:var(--ed-lh);padding:18px 2px 48px;caret-color:var(--accent);word-break:keep-all;overflow-wrap:anywhere}
@@ -205,6 +206,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
       <button id="btnRoot" title="작업 폴더 바꾸기"></button>
       <span class="split"><button id="btnBackup" title="작업 폴더 전체를 백업 폴더로 복사합니다">백업</button><button id="btnBackupWhere" title="백업 폴더 바꾸기">위치 변경</button></span>
       <div class="spacer"></div>
+      <button id="btnTW" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정합니다">타자기</button>
       <button id="btnPin" disabled title="이 화를 목록 맨 위에 고정합니다 (보기 전용, 폴더는 안 건드림)">고정</button>
       <button id="btnCopyTitle" disabled>제목 복사</button>
       <button id="btnCopyBody" disabled title="#태그를 뺀 본문을 복사합니다">본문 복사</button>
@@ -217,6 +219,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     <div id="paper" class="paper" hidden>
       <div class="sheet">
         <input id="title" class="title" type="text" placeholder="제목 (파일 이름이 됩니다)" autocomplete="off" spellcheck="false" aria-label="제목">
+        <div class="tw-line" id="twLine" hidden aria-hidden="true"></div>
         <textarea id="body" class="body" spellcheck="false" aria-label="본문" placeholder="본문을 쓰세요. 어디든 #태그를 적으면 태그로 잡힙니다."></textarea>
       </div>
     </div>
@@ -383,7 +386,7 @@ const el = {
   app: $('#app'), workSel: $('#workSel'), btnNewWork: $('#btnNewWork'), q: $('#q'), btnNewDoc: $('#btnNewDoc'),
   btnReload: $('#btnReload'), btnRenameWork: $('#btnRenameWork'), btnDelWork: $('#btnDelWork'), btnSelect: $('#btnSelect'),
   selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
-  btnPin: $('#btnPin'), btnSort: $('#btnSort'), btnCopyTitle: $('#btnCopyTitle'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
+  btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnCopyTitle: $('#btnCopyTitle'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
   title: $('#title'), body: $('#body'), meter: $('#meter'), cWith: $('#cWith'), cWithout: $('#cWithout'),
   cSelCell: $('#cSelCell'), cSel: $('#cSel'), status: $('#status'), btnSave: $('#btnSave'), toast: $('#toast')
@@ -404,7 +407,7 @@ const appErr = (code, message) => Object.assign(new Error(message), { appCode: c
 
 /* ---------- 설정 ---------- */
 const SKEY = 'writer.settings';
-const DEFAULTS = { font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: 'auto', sideOpen: true, sortDesc: false };
+const DEFAULTS = { font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: 'auto', sideOpen: true, sortDesc: false, typewriter: false };
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
 function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 const cfg = Object.assign({}, DEFAULTS, loadJSON(SKEY) || {});
@@ -461,6 +464,7 @@ function applyCfg() {
   st.setProperty('--ed-wch', String(cfg.wch));
   applyTheme();
   el.app.classList.toggle('side-hidden', !cfg.sideOpen);
+  if (typeof twLayout === 'function' && el.btnTW) { twLayout(); twSchedule(); }
 }
 function applyTheme() {
   let t = cfg.theme;
@@ -742,6 +746,7 @@ function renderTotals(count, w, n, shown) {
 function showEditor(on) {
   el.paper.hidden = !on; el.meter.hidden = !on; el.emptyState.hidden = on;
   el.btnCopyBody.disabled = !on; el.btnCopyTitle.disabled = !on; el.btnPin.disabled = !on;
+  twLayout();
   if (!on) { el.emptyMsg.textContent = S.work ? '왼쪽에서 화를 고르거나 새 화를 만드세요.' : '작품을 만들면 여기에서 쓸 수 있습니다.'; }
 }
 function updateLive() {
@@ -757,6 +762,81 @@ function updateSelection() {
   const c = Core.countText(el.body.value.slice(a, b));
   el.cSel.textContent = `${fmt(c.withSpaces)} / ${fmt(c.noSpaces)}`; el.cSelCell.hidden = false;
 }
+/* ---------- 타자기 모드: 커서가 있는 줄을 화면 가운데에 고정 ---------- */
+const TW = { mirror: null, raf: 0 };
+const twLineHeight = () => { const v = parseFloat(getComputedStyle(el.body).lineHeight); return Number.isFinite(v) ? v : cfg.size * cfg.lh; };
+function twLayout() {
+  const b = el.body, on = cfg.typewriter && !el.paper.hidden;
+  el.btnTW.classList.toggle('on', !!cfg.typewriter);
+  if (!on) { b.style.paddingTop = ''; b.style.paddingBottom = ''; el.twLine.hidden = true; return; }
+  const H = b.clientHeight, lh = twLineHeight();
+  if (!H) return;
+  const pad = Math.max(18, Math.round(H / 2 - lh / 2));
+  b.style.paddingTop = pad + 'px'; b.style.paddingBottom = pad + 'px';
+  el.twLine.style.top = Math.round(b.offsetTop + H / 2 + lh / 2) + 'px';
+  el.twLine.hidden = false;
+}
+// 긴 원고에서도 빠르게: 줄(문단)마다 블록 하나로 나눈 복제본을 유지하고, 바뀐 줄만 고친다.
+function twStyle(m) {
+  const cs = getComputedStyle(el.body);
+  for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'wordSpacing', 'lineHeight', 'paddingLeft', 'paddingRight', 'wordBreak', 'overflowWrap', 'tabSize', 'fontKerning', 'fontFeatureSettings', 'textRendering']) m.style[k] = cs[k];
+  m.style.width = el.body.clientWidth + 'px';
+  return [cs.fontFamily, cs.fontSize, cs.letterSpacing, cs.lineHeight, el.body.clientWidth, cs.paddingTop].join('|');
+}
+function twMirror() {
+  if (!TW.mirror) {
+    const mk = () => { const m = document.createElement('div'); m.setAttribute('aria-hidden', 'true'); m.style.cssText = 'position:absolute;visibility:hidden;left:-99999px;top:0;white-space:pre-wrap;box-sizing:border-box;border:0;padding-top:0;padding-bottom:0;'; document.body.appendChild(m); return m; };
+    TW.mirror = mk(); TW.inner = mk(); TW.lines = []; TW.sig = '';
+  }
+  const sig = twStyle(TW.mirror); twStyle(TW.inner);
+  if (sig !== TW.sig) { TW.sig = sig; TW.mirror.textContent = ''; TW.lines = []; }
+  return TW.mirror;
+}
+function twSync(lines) {
+  const m = TW.mirror, old = TW.lines, kids = m.children;
+  let a = 0; const n = Math.min(old.length, lines.length);
+  while (a < n && old[a] === lines[a]) a++;
+  let b = 0;
+  while (b < n - a && old[old.length - 1 - b] === lines[lines.length - 1 - b]) b++;
+  // old[a .. old.length-b) 를 lines[a .. lines.length-b) 로 교체
+  const oldEnd = old.length - b, newEnd = lines.length - b;
+  const common = Math.min(oldEnd - a, newEnd - a);
+  for (let i = 0; i < common; i++) kids[a + i].textContent = lines[a + i] || '​';
+  for (let i = oldEnd - 1; i >= a + common; i--) kids[i].remove();
+  if (newEnd > a + common) {
+    const frag = document.createDocumentFragment();
+    for (let i = a + common; i < newEnd; i++) { const d = document.createElement('div'); d.textContent = lines[i] || '​'; frag.appendChild(d); }
+    m.insertBefore(frag, kids[a + common] || null);
+  }
+  TW.lines = lines;
+}
+function twCaretY() {
+  const b = el.body; twMirror();
+  const v = b.value, pos = b.selectionEnd;
+  const lines = v.split('\n');
+  twSync(lines);
+  let li = 0; for (let i = v.indexOf('\n'); i !== -1 && i < pos; i = v.indexOf('\n', i + 1)) li++; // 커서가 있는 줄 번호
+  const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
+  const inner = TW.inner;
+  inner.textContent = v.slice(lineStart, pos);
+  const mk = document.createElement('span'); mk.textContent = '​'; inner.appendChild(mk);
+  const padTop = parseFloat(getComputedStyle(b).paddingTop) || 0;
+  return padTop + TW.mirror.children[li].offsetTop + mk.offsetTop;
+}
+function twCenter() {
+  if (!cfg.typewriter || !S.cur || el.paper.hidden) return;
+  const b = el.body;
+  if (b.selectionStart !== b.selectionEnd) return; // 드래그로 고르는 중에는 화면을 움직이지 않음
+  b.scrollTop = Math.max(0, twCaretY() + twLineHeight() / 2 - b.clientHeight / 2);
+}
+function twSchedule() { if (!cfg.typewriter) return; cancelAnimationFrame(TW.raf); TW.raf = requestAnimationFrame(twCenter); }
+function twToggle() {
+  cfg.typewriter = !cfg.typewriter; saveCfg();
+  twLayout(); twCenter();
+  if (S.cur) el.body.focus();
+  toast(cfg.typewriter ? '타자기 모드 켬: 지금 쓰는 줄이 가운데에 머뭅니다' : '타자기 모드 끔');
+}
+
 const DKEY = 'writer.draft';
 function scheduleDraft() {
   clearTimeout(S.draftTimer);
@@ -959,6 +1039,7 @@ async function openDoc(doc) {
     else clearDraft();
   }
   el.body.scrollTop = 0; el.body.setSelectionRange(0, 0); el.cSelCell.hidden = true;
+  twLayout();
   saveJSON('writer.last', { work: S.work.name, file: doc.fileName });
   onEdit(); if (!S.dirty) setStatus('saved', { time: fmtTime(doc.mtime || Date.now()) });
   updateLive(); renderList();
@@ -1278,6 +1359,12 @@ function wire() {
   el.btnSelDel.onclick = deleteSelected;
   el.btnSelEnd.onclick = () => endSelect();
   el.btnRoot.onclick = changeRoot;
+  el.btnTW.onclick = twToggle;
+  el.body.addEventListener('input', twSchedule);
+  el.body.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End|Enter|Backspace|Delete)/.test(e.key)) twSchedule(); });
+  el.body.addEventListener('mouseup', twSchedule);
+  el.body.addEventListener('focus', twSchedule);
+  window.addEventListener('resize', () => { twLayout(); twSchedule(); });
   el.btnBackup.onclick = runBackup;
   $('#bkChange').onclick = () => pickBackup();
   el.btnBackupWhere.onclick = async () => { if (S.backingUp) return; const h = await pickBackup(); if (h) toast(`백업 폴더를 “${h.name}”(으)로 정했습니다. 다음 백업부터 여기에 쌓입니다`); };
@@ -1295,7 +1382,7 @@ function wire() {
     if (S.selMode) { if (S.sel.has(d.fileName)) S.sel.delete(d.fileName); else S.sel.add(d.fileName); renderList(); return; }
     openDoc(d);
   };
-  el.btnSide.onclick = () => { cfg.sideOpen = !cfg.sideOpen; saveCfg(); el.app.classList.toggle('side-hidden', !cfg.sideOpen); };
+  el.btnSide.onclick = () => { cfg.sideOpen = !cfg.sideOpen; saveCfg(); el.app.classList.toggle('side-hidden', !cfg.sideOpen); twLayout(); twSchedule(); };
   el.title.addEventListener('input', onEdit);
   el.body.addEventListener('input', () => { onEdit(); updateSelection(); });
   ['select', 'keyup', 'mouseup', 'focus'].forEach(ev => el.body.addEventListener(ev, updateSelection));
@@ -1355,7 +1442,7 @@ async function boot() {
   }
   showGate('pick');
 }
-window.__writer = { runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
+window.__writer = { twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
 boot();
 })();
 </script>
