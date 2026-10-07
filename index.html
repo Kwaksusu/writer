@@ -1009,11 +1009,12 @@ async function saveNow(gesture) {
       return true;
     } catch (e) {
       if (e && e.appCode === 'conflict') { S.conflict = e.info; setStatus('conflict'); setTimeout(() => handleConflict(e.info), 0); return false; }
-      showError(e); return false;
+      showError(e); scheduleRetry(e, cur); return false;
     }
     finally { S.saving = false; }
   })();
   const ok = await S.pending;
+  if (ok) { S.retryN = 0; clearTimeout(S.retryT); }
   if (ok && S.cur === cur) {
     const changed = el.title.value !== S.savedTitle || el.body.value !== S.savedBody;
     S.dirty = changed;
@@ -1023,6 +1024,27 @@ async function saveNow(gesture) {
   }
   if (S.again) { S.again = false; if (ok) saveNow(gesture); }
   return ok;
+}
+// 구글드라이브 동기화 중 잠깐 잠기는 등 일시적인 실패는 알아서 다시 시도한다(3초 → 10초 → 30초 → 이후 1분마다).
+function isTransient(e) {
+  if (!e) return false;
+  if (e.appCode) return false; // 권한·이름 충돌·빈 제목·충돌 처리 등은 사람이 봐야 함
+  const d = describeError(e);
+  return !d.perm && !d.missing;
+}
+function scheduleRetry(e, cur) {
+  clearTimeout(S.retryT);
+  if (!isTransient(e)) return;
+  const waits = [3000, 10000, 30000, 60000];
+  const wait = waits[Math.min(S.retryN || 0, waits.length - 1)];
+  S.retryN = (S.retryN || 0) + 1;
+  S.retryT = setTimeout(() => {
+    if (S.cur !== cur || S.saving || S.conflict) return;
+    if (el.title.value === S.savedTitle && el.body.value === S.savedBody) return;
+    saveNow(false);
+  }, wait);
+  const span = el.banner.querySelector('span');
+  if (span) span.textContent += ` ${Math.round(wait / 1000)}초 뒤 자동으로 다시 시도합니다.`;
 }
 async function flush() {
   if (S.saving && S.pending) await S.pending;
