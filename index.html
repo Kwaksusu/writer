@@ -1372,6 +1372,23 @@ function wire() {
   el.body.addEventListener('input', twSchedule);
   el.body.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End|Enter|Backspace|Delete)/.test(e.key)) twSchedule(); });
   el.body.addEventListener('mouseup', twSchedule);
+  // 타자기 모드의 위·아래 빈 공간을 클릭하면 브라우저마다 커서가 엉뚱한 곳(맨 앞)으로 가므로 직접 처리한다
+  el.body.addEventListener('mousedown', e => {
+    if (!cfg.typewriter || e.button !== 0 || e.shiftKey) return;
+    const b = el.body, r = b.getBoundingClientRect(), cs = getComputedStyle(b);
+    const pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+    if (e.clientX >= r.left + b.clientWidth) return; // 스크롤바는 그대로
+    const textTop = r.top + pt - b.scrollTop;
+    const textBottom = textTop + (b.scrollHeight - pt - pb);
+    let to = -1;
+    if (e.clientY > textBottom) to = b.value.length;
+    else if (e.clientY < textTop) to = 0;
+    if (to < 0) return;
+    e.preventDefault();
+    TW.lastBlankClick = to;
+    b.focus({ preventScroll: true }); b.setSelectionRange(to, to);
+    updateSelection(); twSchedule();
+  });
   el.body.addEventListener('focus', twSchedule);
   window.addEventListener('resize', () => { twLayout(); twSchedule(); });
   el.btnBackup.onclick = runBackup;
@@ -1451,7 +1468,7 @@ async function boot() {
   }
   showGate('pick');
 }
-window.__writer = { twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
+window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
 boot();
 })();
 </script>
