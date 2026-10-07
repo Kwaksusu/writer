@@ -823,14 +823,11 @@ function twCaretY() {
   const lineStart = v.lastIndexOf('\n', pos - 1) + 1;
   const inner = TW.inner;
   // 표식(span)의 offsetTop은 줄 칸 맨 위가 아니라 글자 영역 위를 가리키므로, 빈 줄일 때 값을 빼서 줄 칸 기준으로 맞춘다
-  if (TW.c0sig !== TW.sig) {
-    inner.textContent = ''; const z = document.createElement('span'); z.textContent = '​'; inner.appendChild(z);
-    TW.c0 = z.offsetTop; TW.c0sig = TW.sig;
-  }
+  const c0 = twC0();
   inner.textContent = v.slice(lineStart, pos);
   const mk = document.createElement('span'); mk.textContent = '​'; inner.appendChild(mk);
   const padTop = parseFloat(getComputedStyle(b).paddingTop) || 0;
-  return padTop + TW.mirror.children[li].offsetTop + (mk.offsetTop - TW.c0);
+  return padTop + TW.mirror.children[li].offsetTop + (mk.offsetTop - c0);
 }
 function twCenter() {
   if (!cfg.typewriter || !S.cur || el.paper.hidden) return;
@@ -839,6 +836,45 @@ function twCenter() {
   b.scrollTop = Math.max(0, twCaretY() + twLineHeight() / 2 - b.clientHeight / 2);
 }
 function twSchedule() { if (!cfg.typewriter) return; cancelAnimationFrame(TW.raf); TW.raf = requestAnimationFrame(twCenter); }
+// 스크롤(휠·스크롤바)로 화면을 옮기면, 멈춘 뒤 가운데 선에 걸린 줄로 커서를 데려온다
+function twC0() {
+  if (TW.c0sig !== TW.sig) {
+    const inner = TW.inner; inner.textContent = '';
+    const z = document.createElement('span'); z.textContent = '​'; inner.appendChild(z);
+    TW.c0 = z.offsetTop; TW.c0sig = TW.sig;
+  }
+  return TW.c0;
+}
+function twCaretAtCenter() {
+  const b = el.body; twMirror();
+  const v = b.value, lines = v.split('\n'); twSync(lines);
+  const lh = twLineHeight(), pt = parseFloat(getComputedStyle(b).paddingTop) || 0;
+  const target = b.scrollTop + b.clientHeight / 2 - pt; // 가운데 줄의 글 기준 높이
+  const kids = TW.mirror.children;
+  let lo = 0, hi = kids.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (kids[mid].offsetTop <= target) lo = mid; else hi = mid - 1; }
+  const div = kids[lo], text = lines[lo];
+  const rows = Math.max(1, Math.round(div.offsetHeight / lh));
+  const row = Math.max(0, Math.min(rows - 1, Math.floor((target - div.offsetTop) / lh)));
+  let start = 0; for (let k = 0; k < lo; k++) start += lines[k].length + 1;
+  if (row === rows - 1) return start + text.length; // 문단의 마지막 줄이면 그 줄 끝(이어 쓰기 좋게)
+  // 접힌 줄의 시작 위치 찾기(이분 탐색)
+  const c0 = twC0(), inner = TW.inner;
+  const rowOf = p => { inner.textContent = text.slice(0, p); const mk = document.createElement('span'); mk.textContent = '​'; inner.appendChild(mk); return Math.round((mk.offsetTop - c0) / lh); };
+  let a = 0, z = text.length;
+  while (a < z) { const m = (a + z) >> 1; if (rowOf(m) >= row) z = m; else a = m + 1; }
+  return start + Math.max(0, a - 1);
+}
+function twScrollEnd() {
+  const b = el.body;
+  if (!cfg.typewriter || !S.cur || el.paper.hidden || TW.composing || TW.mouseDown) return;
+  if (b.selectionStart !== b.selectionEnd) return;
+  const lh = twLineHeight();
+  if (Math.abs(twCaretY() + lh / 2 - b.scrollTop - b.clientHeight / 2) < lh * 0.5) return; // 이미 가운데(타이핑으로 생긴 스크롤)
+  const pos = twCaretAtCenter();
+  b.setSelectionRange(pos, pos);
+  updateSelection(); twCenter();
+}
 function twToggle() {
   cfg.typewriter = !cfg.typewriter; saveCfg();
   twLayout(); twCenter();
@@ -1371,7 +1407,16 @@ function wire() {
   el.btnTW.onclick = twToggle;
   el.body.addEventListener('input', twSchedule);
   el.body.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End|Enter|Backspace|Delete)/.test(e.key)) twSchedule(); });
-  el.body.addEventListener('mouseup', twSchedule);
+  const onScrollbar = e => { const r = el.body.getBoundingClientRect(); return e.clientX >= r.left + el.body.clientWidth; };
+  el.body.addEventListener('mouseup', e => { if (!onScrollbar(e)) twSchedule(); }); // 스크롤바를 놓는 건 클릭이 아님
+  el.body.addEventListener('scroll', () => {
+    if (!cfg.typewriter || !S.cur) return;
+    clearTimeout(TW.scrollT); TW.scrollT = setTimeout(twScrollEnd, 150);
+  });
+  document.addEventListener('mousedown', e => { TW.mouseDown = true; TW.downOnBar = e.target === el.body && onScrollbar(e); }, true);
+  window.addEventListener('mouseup', () => { const was = TW.mouseDown; TW.mouseDown = false; TW.downOnBar = false; if (was && cfg.typewriter) { clearTimeout(TW.scrollT); TW.scrollT = setTimeout(twScrollEnd, 60); } }, true);
+  el.body.addEventListener('compositionstart', () => { TW.composing = true; });
+  el.body.addEventListener('compositionend', () => { TW.composing = false; });
   // 타자기 모드의 위·아래 빈 공간을 클릭하면 브라우저마다 커서가 엉뚱한 곳(맨 앞)으로 가므로 직접 처리한다
   el.body.addEventListener('mousedown', e => {
     if (!cfg.typewriter || e.button !== 0 || e.shiftKey) return;
@@ -1389,7 +1434,7 @@ function wire() {
     b.focus({ preventScroll: true }); b.setSelectionRange(to, to);
     updateSelection(); twSchedule();
   });
-  el.body.addEventListener('focus', twSchedule);
+  el.body.addEventListener('focus', () => { if (!TW.downOnBar) twSchedule(); }); // 스크롤바 클릭으로 포커스가 와도 되돌아가지 않게
   window.addEventListener('resize', () => { twLayout(); twSchedule(); });
   el.btnBackup.onclick = runBackup;
   $('#bkChange').onclick = () => pickBackup();
