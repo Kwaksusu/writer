@@ -362,7 +362,7 @@ const Core = (() => {
 
   function makeDoc(fileName, rawText, mtime, enc) {
     const text = String(rawText).replace(/\r\n?/g, '\n');
-    const title = fileName.replace(/\.txt$/i, '');
+    const title = norm(fileName).replace(/\.txt$/i, ''); // 맥은 한글 파일 이름을 자모로 쪼개(NFD) 주므로 합친 글자(NFC)로 보여준다
     return {
       fileName, title, text, enc: enc || 'utf-8', mtime: mtime || 0,
       tags: extractTags(text), counts: countText(text),
@@ -376,7 +376,9 @@ const Core = (() => {
     return { text: new TextDecoder('utf-8').decode(buf), enc: 'utf-8-lossy' };
   }
 
-  return { norm, gcount, extractTags, cleanForPost, countText, sanitizeName, nextTitle, compare, matchDoc, makeDoc, decodeBytes };
+  // 파일·폴더 이름 비교용: 맥(NFD)과 윈도우(NFC) 한글 차이, 대소문자 차이를 무시
+  const nameKey = s => norm(s).toLowerCase();
+  return { nameKey, norm, gcount, extractTags, cleanForPost, countText, sanitizeName, nextTitle, compare, matchDoc, makeDoc, decodeBytes };
 })();
 /*CORE-END*/
 
@@ -653,7 +655,7 @@ function setStatus(kind, extra) {
 async function listWorks() {
   const out = [];
   for await (const [name, h] of S.root.entries()) if (h.kind === 'directory' && !/^[._]/.test(name)) out.push({ name, handle: h });
-  out.sort((a, b) => Core.compare(a.name, b.name));
+  out.sort((a, b) => Core.compare(Core.norm(a.name), Core.norm(b.name)));
   S.works = out; renderWorks();
 }
 // 불러오기가 겹치면(느린 드라이브에서 새로고침·작품 선택이 겹칠 때) 가장 나중 것만 살린다.
@@ -702,11 +704,11 @@ const sortDocs = () => S.docs.sort((a, b) => Core.compare(a.title, b.title));
 /* ---------- 목록 그리기 ---------- */
 function renderWorks() {
   let opts = S.works.map((w, i) => `<option value="${i}">${esc(w.name)}</option>`);
-  const stale = S.work && !S.works.some(w => w.name === S.work.name);
+  const stale = S.work && !S.works.some(w => Core.nameKey(w.name) === Core.nameKey(S.work.name));
   if (stale) opts.push(`<option value="-1">${esc(S.work.name)} (찾을 수 없음)</option>`);
   el.workSel.innerHTML = opts.length ? opts.join('') : '<option value="">작품 없음</option>';
   if (stale) el.workSel.value = '-1';
-  else if (S.work) { const i = S.works.findIndex(w => w.name === S.work.name); if (i >= 0) el.workSel.value = String(i); }
+  else if (S.work) { const i = S.works.findIndex(w => Core.nameKey(w.name) === Core.nameKey(S.work.name)); if (i >= 0) el.workSel.value = String(i); }
   el.btnRenameWork.disabled = !S.work; el.btnDelWork.disabled = !S.work;
   el.btnRoot.textContent = S.root ? `작업 폴더: ${S.root.name}` : '작업 폴더';
 }
@@ -983,7 +985,7 @@ async function saveNow(gesture) {
       if (!name) throw appErr('empty', '제목이 비어 있습니다. 제목을 입력하세요.');
       const oldName = cur.fileName;
       let fileName = name + '.txt';
-      if (fileName.toLowerCase() === oldName.toLowerCase()) fileName = oldName;
+      if (Core.nameKey(fileName) === Core.nameKey(oldName)) fileName = oldName; // 같은 파일(맥 자모 분리·대소문자 차이 포함)이면 이름 유지
       const renaming = fileName !== oldName;
       if (renaming && await fileExists(work.handle, fileName)) throw appErr('collision', `같은 이름의 화가 이미 있습니다: ${fileName}`);
       if (!forced) {
@@ -1135,7 +1137,7 @@ async function openDoc(doc) {
   if (doc.enc === 'euc-kr') showBanner('info', '이 파일은 EUC-KR(ANSI)로 읽었습니다. 저장하면 UTF-8로 바뀝니다.', []);
   if (doc.enc === 'utf-8-lossy') showBanner('info', '이 파일은 글자가 깨져 보일 수 있습니다. 내용을 확인하기 전에는 저장하지 마세요.', []);
   const dr = loadJSON(DKEY);
-  if (dr && dr.work === S.work.name && dr.file === doc.fileName && (dr.body !== doc.text || dr.title !== doc.title) && dr.t > doc.mtime) {
+  if (dr && Core.nameKey(dr.work || '') === Core.nameKey(S.work.name) && Core.nameKey(dr.file || '') === Core.nameKey(doc.fileName) && (dr.body !== doc.text || dr.title !== doc.title) && dr.t > doc.mtime) {
     if (confirm(`저장되지 않은 임시본이 있습니다 (마지막 입력 ${fmtTime(dr.t)}). 복구할까요?`)) { el.title.value = dr.title; el.body.value = dr.body; }
     else clearDraft();
   }
@@ -1159,7 +1161,7 @@ async function selectWork(work, fileName) {
   const ok = await loadWork(work, seq);
   if (ok === 'stale' || seq !== S.loadSeq) return;
   if (!ok) return;
-  const target = fileName && S.docs.find(d => d.fileName === fileName);
+  const target = fileName && S.docs.find(d => Core.nameKey(d.fileName) === Core.nameKey(fileName));
   renderList();
   if (target) await openDoc(target);
 }
@@ -1177,7 +1179,7 @@ async function refreshAll() {
   if (S.cur && !(await flush())) return;
   try { await listWorks(); } catch (e) { showError(e, '목록 읽기'); return; }
   if (!name) { await selectWork(S.works[0] || null, null); return; }
-  const w = S.works.find(x => x.name === name);
+  const w = S.works.find(x => Core.nameKey(x.name) === Core.nameKey(name));
   if (!w) {
     renderWorks();
     showBanner('error', `작품 폴더 “${name}”을(를) 찾을 수 없습니다. 지워졌거나 이름이 바뀐 것 같습니다. 목록에서 정리할까요?`, [
@@ -1260,8 +1262,8 @@ async function renameWork() {
   if (v == null) return;
   const name = Core.sanitizeName(v);
   if (!name || /^[._]/.test(name)) { toast('이름이 비었거나 . 또는 _ 로 시작합니다'); return; }
-  if (name.toLowerCase() === old.name.toLowerCase()) { toast('같은 이름입니다'); return; }
-  if (S.works.some(w => w.name.toLowerCase() === name.toLowerCase())) { showBanner('error', `같은 이름의 작품이 이미 있습니다: ${name}`, []); return; }
+  if (Core.nameKey(name) === Core.nameKey(old.name)) { toast('같은 이름입니다'); return; }
+  if (S.works.some(w => Core.nameKey(w.name) === Core.nameKey(name))) { showBanner('error', `같은 이름의 작품이 이미 있습니다: ${name}`, []); return; }
   // 지금 쓰던 내용은 먼저 기존 폴더에도 저장해 둔다.
   if (S.cur && !(await flush()) && !confirm('기존 폴더에 저장하지 못했습니다. 그래도 새 폴더로 넘어갈까요?')) return;
   try {
@@ -1274,7 +1276,7 @@ async function renameWork() {
     }
     S.cur = null; S.dirty = false; S.firstDirty = 0; clearTimeout(S.timer); clearDraft();
     await listWorks();
-    await selectWork(S.works.find(w => w.name === name) || { name, handle }, fileName);
+    await selectWork(S.works.find(w => Core.nameKey(w.name) === Core.nameKey(name)) || { name, handle }, fileName);
     toast(`새 폴더 “${name}”을(를) 만들었습니다`);
   } catch (e) { showError(e, '제목 변경'); }
 }
@@ -1287,7 +1289,7 @@ async function newWork() {
     await ensureWrite(true);
     const handle = await S.root.getDirectoryHandle(name, { create: true });
     await listWorks();
-    await selectWork(S.works.find(w => w.name === name) || { name, handle });
+    await selectWork(S.works.find(w => Core.nameKey(w.name) === Core.nameKey(name)) || { name, handle });
   } catch (e) { showError(e, '작품 추가'); }
 }
 async function newDoc() {
@@ -1300,7 +1302,7 @@ async function newDoc() {
   const name = Core.sanitizeName(v);
   if (!name) { toast('제목을 입력하세요'); return; }
   const fileName = name + '.txt';
-  if (S.docs.some(d => d.fileName.toLowerCase() === fileName.toLowerCase())) { showBanner('error', `같은 이름의 화가 이미 있습니다: ${fileName}`, []); return; }
+  if (S.docs.some(d => Core.nameKey(d.fileName) === Core.nameKey(fileName))) { showBanner('error', `같은 이름의 화가 이미 있습니다: ${fileName}`, []); return; }
   try {
     await ensureWrite(true);
     await writeFile(S.work.handle, fileName, '');
@@ -1443,7 +1445,7 @@ async function enterRoot(h, fresh, prev) {
   applyCfg();
   if (fresh) { S.cur = null; S.work = null; S.dirty = false; clearTimeout(S.timer); clearDraft(); hideBanner(); }
   const last = fresh ? {} : (loadJSON('writer.last') || {});
-  const w = S.works.find(x => x.name === last.work) || S.works[0] || null;
+  const w = S.works.find(x => last.work && Core.nameKey(x.name) === Core.nameKey(last.work)) || S.works[0] || null;
   await selectWork(w, w && last.work === w.name ? last.file : null);
   if (!w) showEditor(false);
   renderWorks();
