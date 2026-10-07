@@ -99,7 +99,33 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 .side-foot{border-top:1px solid var(--line);padding:10px 14px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.6}
 
 .main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper)}
-.bar{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.bar{display:flex;gap:6px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--bg);container-type:inline-size;overflow:hidden;white-space:nowrap}
+.bar .pill{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#btnRoot{max-width:260px}
+@container (max-width: 640px){#btnBackupWhere{display:none}.bar .pill-group button:first-child{border-radius:10px}#btnRoot{max-width:130px}}
+@container (max-width: 470px){#btnRoot{max-width:76px}.bar{gap:3px;padding:7px 8px}.ib{width:30px}}
+/* 아이폰풍: 테두리 없는 아이콘 버튼, 둥근 알약 버튼 */
+.ib{width:34px;height:34px;padding:0;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:10px;color:var(--ink);flex:none}
+.ib:hover{background:var(--hover)}
+.ib svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ib.on{background:var(--accent);color:var(--accent-ink)}
+.ib.on:hover{background:var(--accent);filter:brightness(1.08)}
+.ib:disabled{opacity:.3;background:transparent}
+#btnPin.pinned{color:var(--accent)}
+#btnSave[data-state="saved"]{color:var(--accent)}
+#btnSave[data-state="dirty"]{color:var(--warn)}
+#btnSave[data-state="saving"]{color:var(--warn)}
+#btnSave[data-state="error"]{color:var(--err)}
+#btnSave .spin{transform-origin:12px 12px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#btnSave .spin{animation:none}}
+#btnPin.pinned polygon{fill:currentColor}
+.bar .pill,.bar .pill-group button{border:0;background:var(--hover);border-radius:10px;padding:6px 12px;font-size:14px}
+.bar .pill:hover,.bar .pill-group button:hover{filter:brightness(.96)}
+:root[data-theme="dark"] .bar .pill:hover,:root[data-theme="dark"] .bar .pill-group button:hover{filter:brightness(1.18)}
+.bar .pill-group{gap:1px}
+.bar .pill-group button:first-child{border-radius:10px 0 0 10px}
+.bar .pill-group button:last-child{border-radius:0 10px 10px 0;border-left:0;color:var(--muted);font-size:13px}
 .spacer{flex:1}
 .split{display:inline-flex}
 .split button:first-child{border-radius:6px 0 0 6px}
@@ -119,13 +145,25 @@ input.title:focus{border-bottom-color:var(--accent)}
 .body::-moz-selection,.title::-moz-selection{background:var(--sel-bg);color:var(--sel-ink)}
 .item::selection{background:var(--sel-bg);color:var(--sel-ink)}
 .emptystate{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center;padding:24px}
-.meter{display:flex;align-items:baseline;gap:30px;flex-wrap:wrap;padding:10px 20px;border-top:1px solid var(--line);background:var(--bg)}
+.meter{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:7px 14px 7px 18px;border-top:1px solid var(--line);background:var(--bg);container-type:inline-size;overflow:hidden;white-space:nowrap}
+.meter .counts{grid-column:2;display:flex;align-items:baseline;gap:28px}
+.meter .right{grid-column:3;justify-self:end;display:flex;align-items:center;gap:6px}
 .meter .cell{display:flex;align-items:baseline;gap:8px}
 .meter .lbl{font-size:13px;color:var(--muted)}
+.meter .lbl .short{display:none}
 .meter b{font-size:23px;font-weight:650;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .meter .cell.sel b{font-size:17px}
-.meter .note{font-size:12.5px;color:var(--muted)}
-.status{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.status{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
+/* 창이 좁아져도 한 줄 유지 */
+@container (max-width: 700px){.meter .lbl .full{display:none}.meter .lbl .short{display:inline}.meter .counts{gap:18px}.meter b{font-size:21px}}
+@container (max-width: 520px){.meter{grid-template-columns:auto 1fr;gap:10px;padding-left:12px}.meter .counts{grid-column:1;gap:12px}.meter .right{grid-column:2}.meter b{font-size:19px}.meter .cell.sel b{font-size:15px}.status{font-size:13.5px}}
+@container (max-width: 380px){.meter .cell.sel{display:none!important}.meter .lbl{font-size:12px}}
+/* 맨 위/맨 아래 이동 버튼 */
+.paper{position:relative}
+.jump{position:absolute;z-index:3;bottom:20px;right:max(46px, calc(50% - var(--ed-wch) * var(--ed-size) / 2 - 54px));display:flex;flex-direction:column;gap:8px;opacity:.45;transition:opacity .15s}
+.jump:hover{opacity:1}
+.jb{border-radius:50%;background:var(--paper);border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--muted)}
+.jb:hover{color:var(--ink)}
 .status.saved{color:var(--accent)}
 .status.dirty{color:var(--warn)}
 .status.error{color:var(--err);font-weight:600}
@@ -151,7 +189,6 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 @media (max-width:760px){
   .app{grid-template-columns:230px minmax(0,1fr)}
   .paper{padding:16px 14px 0}
-  .meter{gap:18px}
 }
 @media (prefers-reduced-motion:no-preference){
   .item,button{transition:background-color .12s}
@@ -203,21 +240,24 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 
   <section class="main">
     <header class="bar">
-      <button id="btnSide" title="목록 접기 또는 펴기">목록</button>
-      <button id="btnRoot" title="작업 폴더 바꾸기"></button>
-      <span class="split"><button id="btnBackup" title="작업 폴더 전체를 백업 폴더로 복사합니다">백업</button><button id="btnBackupWhere" title="백업 폴더 바꾸기">위치 변경</button></span>
+      <button id="btnSide" class="ib" title="목록 접기·펴기" aria-label="목록 접기·펴기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg></button>
+      <button id="btnRoot" class="pill" title="작업 폴더 바꾸기"></button>
+      <span class="split pill-group"><button id="btnBackup" title="작업 폴더 전체를 백업 폴더로 복사합니다">백업</button><button id="btnBackupWhere" title="백업 폴더 바꾸기">위치 변경</button></span>
       <div class="spacer"></div>
-      <button id="btnTW" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정합니다">타자기</button>
-      <button id="btnPin" disabled title="이 화를 목록 맨 위에 고정합니다 (보기 전용, 폴더는 안 건드림)">고정</button>
-      <button id="btnCopyTitle" disabled>제목 복사</button>
-      <button id="btnCopyBody" disabled title="#태그를 뺀 본문을 복사합니다">본문 복사</button>
-      <button id="btnSettings">설정</button>
+      <button id="btnCopyBody" class="pill" disabled title="#태그를 뺀 본문을 복사합니다">본문 복사</button>
+      <button id="btnTW" class="ib" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정" aria-label="타자기 모드" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9V3.8h8V9"/><path d="M4 9h16"/><rect x="3.5" y="11.2" width="17" height="8.6" rx="2.2"/><path d="M7.6 14.3h.01M10.5 14.3h.01M13.5 14.3h.01M16.4 14.3h.01" stroke-width="2.2"/><path d="M9 17.3h6"/></svg></button>
+      <button id="btnPin" class="ib" disabled title="이 화를 목록 맨 위에 고정" aria-label="고정" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 3.6 14.5 8.9 20.3 9.6 16 13.6 17.2 19.4 12 16.5 6.8 19.4 8 13.6 3.7 9.6 9.5 8.9"/></svg></button>
+      <button id="btnSettings" class="ib" title="설정" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/></svg></button>
     </header>
     <div id="banner" class="banner" hidden role="alert"></div>
 
     <div id="emptyState" class="emptystate"><p id="emptyMsg">왼쪽에서 화를 고르거나 새 화를 만드세요.</p></div>
 
     <div id="paper" class="paper" hidden>
+      <div class="jump" id="jump" hidden>
+        <button type="button" class="ib jb" id="btnTop" title="맨 위로" aria-label="맨 위로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 5h11M12 9v10M7.8 13.2L12 9l4.2 4.2"/></svg></button>
+        <button type="button" class="ib jb" id="btnBottom" title="맨 아래로" aria-label="맨 아래로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 19h11M12 5v10M7.8 10.8L12 15l4.2-4.2"/></svg></button>
+      </div>
       <div class="sheet">
         <input id="title" class="title" type="text" placeholder="제목 (파일 이름이 됩니다)" autocomplete="off" spellcheck="false" aria-label="제목">
         <div class="tw-line" id="twLine" hidden aria-hidden="true"></div>
@@ -226,13 +266,15 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     </div>
 
     <footer class="meter" id="meter" hidden>
-      <div class="cell" title="줄바꿈과 #태그는 세지 않습니다"><span class="lbl">공백 포함</span><b id="cWith">0</b></div>
-      <div class="cell" title="공백과 문장부호·특수문자(. , &quot; ? ! … 등)를 빼고 글자와 숫자만 셉니다 (노벨피아 기준). 줄바꿈과 #태그도 세지 않습니다."><span class="lbl">공백 제외</span><b id="cWithout">0</b></div>
-      <div class="cell sel" id="cSelCell" hidden><span class="lbl">선택 영역(포함 / 제외)</span><b id="cSel"></b></div>
-      <div class="note">공백 제외는 특수문자도 뺌 · 줄바꿈과 #태그는 세지 않음</div>
-      <div class="spacer"></div>
-      <div class="status" id="status" aria-live="polite"></div>
-      <button id="btnSave" title="Ctrl+S">저장</button>
+      <div class="counts">
+        <div class="cell" title="줄바꿈과 #태그는 세지 않습니다"><span class="lbl"><span class="full">공백 포함</span><span class="short">포함</span></span><b id="cWith">0</b></div>
+        <div class="cell" title="공백과 문장부호·특수문자(. , &quot; ? ! … 등)를 빼고 글자와 숫자만 셉니다 (노벨피아 기준). 줄바꿈과 #태그도 세지 않습니다."><span class="lbl"><span class="full">공백 제외</span><span class="short">제외</span></span><b id="cWithout">0</b></div>
+        <div class="cell sel" id="cSelCell" hidden title="선택한 부분의 글자 수 (공백 포함 / 공백 제외)"><span class="lbl"><span class="full">선택 영역</span><span class="short">선택</span></span><b id="cSel"></b></div>
+      </div>
+      <div class="right">
+        <div class="status" id="status" aria-live="polite"></div>
+        <button id="btnSave" class="ib" title="지금 저장 (Ctrl/Cmd+S)" aria-label="저장"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/></svg></button>
+      </div>
     </footer>
   </section>
 </div>
@@ -390,10 +432,10 @@ const el = {
   app: $('#app'), workSel: $('#workSel'), btnNewWork: $('#btnNewWork'), q: $('#q'), btnNewDoc: $('#btnNewDoc'),
   btnReload: $('#btnReload'), btnRenameWork: $('#btnRenameWork'), btnDelWork: $('#btnDelWork'), btnSelect: $('#btnSelect'),
   selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
-  btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnCopyTitle: $('#btnCopyTitle'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
+  btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
   title: $('#title'), body: $('#body'), meter: $('#meter'), cWith: $('#cWith'), cWithout: $('#cWithout'),
-  cSelCell: $('#cSelCell'), cSel: $('#cSel'), status: $('#status'), btnSave: $('#btnSave'), toast: $('#toast')
+  cSelCell: $('#cSelCell'), cSel: $('#cSel'), status: $('#status'), btnSave: $('#btnSave'), toast: $('#toast'), jump: $('#jump'), btnTop: $('#btnTop'), btnBottom: $('#btnBottom')
 };
 
 const S = {
@@ -649,6 +691,26 @@ function setStatus(kind, extra) {
   el.status.textContent = t; el.status.className = 'status ' + (kind === 'conflict' ? 'error' : kind);
   const dirtyMark = (kind === 'dirty' || kind === 'saving' || kind === 'error' || kind === 'conflict') ? '● ' : '';
   document.title = S.cur ? `${dirtyMark}${S.cur.title} - 집필기` : '집필기';
+  setSaveIcon(kind, t);
+}
+// 저장 버튼 아이콘이 저장 상태를 따라간다: ✓ 저장됨 / 점 대기 중 / 도는 원 저장 중 / ✕ 저장 안 됨
+const SAVE_ICONS = {
+  saved: '<circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/>',
+  dirty: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>',
+  saving: '<circle cx="12" cy="12" r="8.6" opacity=".25"/><path class="spin" d="M12 3.4a8.6 8.6 0 0 1 8.6 8.6"/>',
+  error: '<circle cx="12" cy="12" r="8.6"/><path d="M9 9l6 6M15 9l-6 6"/>'
+};
+function setSaveIcon(kind, text) {
+  const b = el.btnSave; if (!b) return;
+  const k = kind === 'conflict' ? 'error' : (SAVE_ICONS[kind] ? kind : 'saved');
+  if (b.dataset.state !== k) { b.dataset.state = k; b.querySelector('svg').innerHTML = SAVE_ICONS[k]; }
+  const tip = {
+    saved: `${text || '저장됨'} · 누르면 지금 다시 저장 (Ctrl/Cmd+S)`,
+    dirty: '저장 대기 중 · 누르면 바로 저장 (Ctrl/Cmd+S)',
+    saving: '저장 중…',
+    error: `저장 안 됨${text ? ` (${text})` : ''} · 누르면 다시 저장`
+  }[k];
+  b.title = tip; b.setAttribute('aria-label', tip);
 }
 
 /* ---------- 불러오기 ---------- */
@@ -745,17 +807,19 @@ function renderList() {
 }
 function updatePinBtn() {
   el.btnPin.disabled = !S.cur;
-  el.btnPin.textContent = S.cur && pinSet().has(S.cur.fileName) ? '고정 해제' : '고정';
+  const pinned = !!(S.cur && pinSet().has(S.cur.fileName));
+  el.btnPin.classList.toggle('pinned', pinned); el.btnPin.setAttribute('aria-pressed', String(pinned));
+  el.btnPin.title = pinned ? '고정 해제' : '이 화를 목록 맨 위에 고정';
 }
 function renderTotals(count, w, n, shown) {
   el.totals.innerHTML = S.work
-    ? `${fmt(count)}화${S.filter ? ` (검색 결과 ${fmt(shown)}개)` : ''}<br>공백 포함 ${fmt(w)}자<br>공백 제외 ${fmt(n)}자` : '';
+    ? `${fmt(count)}개 항목${S.filter ? ` (검색 결과 ${fmt(shown)}개)` : ''}<br>공백 포함 ${fmt(w)}자<br>공백 제외 ${fmt(n)}자` : '';
 }
 
 /* ---------- 편집기 ---------- */
 function showEditor(on) {
   el.paper.hidden = !on; el.meter.hidden = !on; el.emptyState.hidden = on;
-  el.btnCopyBody.disabled = !on; el.btnCopyTitle.disabled = !on; el.btnPin.disabled = !on;
+  el.btnCopyBody.disabled = !on; el.btnPin.disabled = !on; updateJump();
   twLayout();
   if (!on) { el.emptyMsg.textContent = S.work ? '왼쪽에서 화를 고르거나 새 화를 만드세요.' : '작품을 만들면 여기에서 쓸 수 있습니다.'; }
 }
@@ -765,6 +829,18 @@ function updateLive() {
   el.cWith.textContent = fmt(c.withSpaces); el.cWithout.textContent = fmt(c.noSpaces);
   S.cur.counts = c; S.cur.tags = Core.extractTags(el.body.value);
   clearTimeout(S.listTimer); S.listTimer = setTimeout(renderList, 350);
+  updateJump();
+}
+// 맨 위/맨 아래 버튼: 스크롤할 만큼 길 때만 보인다
+function updateJump() {
+  if (!el.jump) return;
+  el.jump.hidden = !S.cur || el.paper.hidden || el.body.scrollHeight <= el.body.clientHeight + 4;
+}
+function jumpTo(end) {
+  const b = el.body, pos = end ? b.value.length : 0;
+  b.focus({ preventScroll: true }); b.setSelectionRange(pos, pos);
+  UN.force = true; unSyncCaret(); updateSelection();
+  if (cfg.typewriter) twCenter(); else b.scrollTop = end ? b.scrollHeight : 0;
 }
 function updateSelection() {
   const a = el.body.selectionStart, b = el.body.selectionEnd;
@@ -777,7 +853,7 @@ const TW = { mirror: null, raf: 0 };
 const twLineHeight = () => { const v = parseFloat(getComputedStyle(el.body).lineHeight); return Number.isFinite(v) ? v : cfg.size * cfg.lh; };
 function twLayout() {
   const b = el.body, on = cfg.typewriter && !el.paper.hidden;
-  el.btnTW.classList.toggle('on', !!cfg.typewriter);
+  el.btnTW.classList.toggle('on', !!cfg.typewriter); el.btnTW.setAttribute('aria-pressed', String(!!cfg.typewriter));
   if (!on) { b.style.paddingTop = ''; b.style.paddingBottom = ''; el.twLine.hidden = true; return; }
   const H = b.clientHeight, lh = twLineHeight();
   if (!H) return;
@@ -1488,6 +1564,9 @@ function wire() {
   el.btnSelEnd.onclick = () => endSelect();
   el.btnRoot.onclick = changeRoot;
   el.btnTW.onclick = twToggle;
+  el.btnTop.onclick = () => jumpTo(false);
+  el.btnBottom.onclick = () => jumpTo(true);
+  [el.btnTop, el.btnBottom].forEach(bt => bt.addEventListener('mousedown', e => e.preventDefault())); // 누를 때 본문 포커스를 뺏지 않게
   el.body.addEventListener('input', twSchedule);
   el.body.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End|Enter|Backspace|Delete)/.test(e.key)) twSchedule(); });
   const onScrollbar = e => { const b = el.body, r = b.getBoundingClientRect(); return e.clientX >= r.left + Math.min(b.clientWidth, b.offsetWidth - 16); }; // 맥처럼 글 위에 겹쳐 뜨는 스크롤바(폭 0)도 오른쪽 16px을 스크롤바로 본다
@@ -1529,7 +1608,7 @@ function wire() {
     updateSelection(); twSchedule();
   });
   el.body.addEventListener('focus', () => { if (!TW.downOnBar) twSchedule(); }); // 스크롤바 클릭으로 포커스가 와도 되돌아가지 않게
-  window.addEventListener('resize', () => { twLayout(); twSchedule(); });
+  window.addEventListener('resize', () => { twLayout(); twSchedule(); updateJump(); });
   el.btnBackup.onclick = runBackup;
   $('#bkChange').onclick = () => pickBackup();
   el.btnBackupWhere.onclick = async () => { if (S.backingUp) return; const h = await pickBackup(); if (h) toast(`백업 폴더를 “${h.name}”(으)로 정했습니다. 다음 백업부터 여기에 쌓입니다`); };
@@ -1574,7 +1653,6 @@ function wire() {
   });
   el.btnSave.onclick = () => saveNow(true);
   el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그 제외)' : '복사하지 못했습니다'); };
-  el.btnCopyTitle.onclick = async () => { toast((await copyText(el.title.value)) ? '제목을 복사했습니다' : '복사하지 못했습니다'); };
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) { e.preventDefault(); saveNow(true); } // 한글 입력 중이면 key가 'ㄴ'으로 올 수 있어 물리 키(KeyS)도 본다
   });
