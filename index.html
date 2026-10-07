@@ -1407,14 +1407,24 @@ function wire() {
   el.btnTW.onclick = twToggle;
   el.body.addEventListener('input', twSchedule);
   el.body.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End|Enter|Backspace|Delete)/.test(e.key)) twSchedule(); });
-  const onScrollbar = e => { const r = el.body.getBoundingClientRect(); return e.clientX >= r.left + el.body.clientWidth; };
+  const onScrollbar = e => { const b = el.body, r = b.getBoundingClientRect(); return e.clientX >= r.left + Math.min(b.clientWidth, b.offsetWidth - 16); }; // 맥처럼 글 위에 겹쳐 뜨는 스크롤바(폭 0)도 오른쪽 16px을 스크롤바로 본다
+  TW.onScrollbar = onScrollbar;
   el.body.addEventListener('mouseup', e => { if (!onScrollbar(e)) twSchedule(); }); // 스크롤바를 놓는 건 클릭이 아님
   el.body.addEventListener('scroll', () => {
     if (!cfg.typewriter || !S.cur) return;
     clearTimeout(TW.scrollT); TW.scrollT = setTimeout(twScrollEnd, 150);
   });
   document.addEventListener('mousedown', e => { TW.mouseDown = true; TW.downOnBar = e.target === el.body && onScrollbar(e); }, true);
-  window.addEventListener('mouseup', () => { const was = TW.mouseDown; TW.mouseDown = false; TW.downOnBar = false; if (was && cfg.typewriter) { clearTimeout(TW.scrollT); TW.scrollT = setTimeout(twScrollEnd, 60); } }, true);
+  window.addEventListener('mouseup', e => {
+    const was = TW.mouseDown; TW.mouseDown = false; TW.downOnBar = false;
+    // 스크롤바 구역(맥 오버레이 포함)의 빈 공간: 끌지 않고 그냥 클릭했으면 그때 커서를 글 끝/처음으로
+    const p = TW.pendingBlank; TW.pendingBlank = null;
+    if (p && cfg.typewriter && S.cur && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 4) {
+      const b = el.body; b.focus({ preventScroll: true }); b.setSelectionRange(p.to, p.to);
+      TW.lastBlankClick = p.to; updateSelection(); twCenter();
+    }
+    if (was && cfg.typewriter) { clearTimeout(TW.scrollT); TW.scrollT = setTimeout(twScrollEnd, 60); }
+  }, true);
   el.body.addEventListener('compositionstart', () => { TW.composing = true; });
   el.body.addEventListener('compositionend', () => { TW.composing = false; });
   // 타자기 모드의 위·아래 빈 공간을 클릭하면 브라우저마다 커서가 엉뚱한 곳(맨 앞)으로 가므로 직접 처리한다
@@ -1422,13 +1432,14 @@ function wire() {
     if (!cfg.typewriter || e.button !== 0 || e.shiftKey) return;
     const b = el.body, r = b.getBoundingClientRect(), cs = getComputedStyle(b);
     const pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
-    if (e.clientX >= r.left + b.clientWidth) return; // 스크롤바는 그대로
     const textTop = r.top + pt - b.scrollTop;
     const textBottom = textTop + (b.scrollHeight - pt - pb);
     let to = -1;
     if (e.clientY > textBottom) to = b.value.length;
     else if (e.clientY < textTop) to = 0;
     if (to < 0) return;
+    // 스크롤바 구역이면 끌기를 막지 않고, 놓을 때(끌지 않았으면) 처리한다
+    if (TW.onScrollbar && TW.onScrollbar(e)) { TW.pendingBlank = { to, x: e.clientX, y: e.clientY }; return; }
     e.preventDefault();
     TW.lastBlankClick = to;
     b.focus({ preventScroll: true }); b.setSelectionRange(to, to);
@@ -1466,7 +1477,7 @@ function wire() {
   el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그 제외)' : '복사하지 못했습니다'); };
   el.btnCopyTitle.onclick = async () => { toast((await copyText(el.title.value)) ? '제목을 복사했습니다' : '복사하지 못했습니다'); };
   document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') { e.preventDefault(); saveNow(true); }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) { e.preventDefault(); saveNow(true); } // 한글 입력 중이면 key가 'ㄴ'으로 올 수 있어 물리 키(KeyS)도 본다
   });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(false); else checkExternal(); });
   window.addEventListener('focus', () => { checkExternal(); });
