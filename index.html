@@ -656,24 +656,30 @@ async function listWorks() {
   out.sort((a, b) => Core.compare(a.name, b.name));
   S.works = out; renderWorks();
 }
-async function loadWork(work) {
+// 불러오기가 겹치면(느린 드라이브에서 새로고침·작품 선택이 겹칠 때) 가장 나중 것만 살린다.
+async function loadWork(work, seq) {
+  const stale = () => seq !== undefined && seq !== S.loadSeq;
   S.docs = [];
   el.list.innerHTML = '<li class="empty">불러오는 중…</li>';
-  const failed = [];
+  const failed = [], docs = new Map();
   try {
     const files = [];
     for await (const [name, h] of work.handle.entries()) if (h.kind === 'file' && /\.txt$/i.test(name)) files.push([name, h]);
+    if (stale()) return 'stale';
     for (let i = 0; i < files.length; i += 16) {
       await Promise.all(files.slice(i, i + 16).map(async ([name, h]) => {
         try {
           const f = await h.getFile();
           const { text, enc } = Core.decodeBytes(await f.arrayBuffer());
-          S.docs.push(Core.makeDoc(name, text, f.lastModified, enc));
+          docs.set(name, Core.makeDoc(name, text, f.lastModified, enc));
         } catch (e) { failed.push(name); }
       }));
+      if (stale()) return 'stale';
       el.list.innerHTML = `<li class="empty">불러오는 중… ${Math.min(i + 16, files.length)} / ${files.length}</li>`;
     }
+    S.docs = [...docs.values()];
   } catch (e) {
+    if (stale()) return 'stale';
     S.docs = [];
     if (e && e.name === 'NotFoundError') {
       el.list.innerHTML = '<li class="empty">작품 폴더를 찾을 수 없습니다.</li>';
@@ -1141,14 +1147,17 @@ async function openDoc(doc) {
   const on = el.list.querySelector('.item.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
 }
 async function selectWork(work, fileName) {
+  const seq = S.loadSeq = (S.loadSeq || 0) + 1; // 이 선택의 번호표: 뒤에 다른 선택이 오면 이건 버린다
   if (S.cur) {
     const ok = await flush();
+    if (seq !== S.loadSeq) return;
     if (!ok && !confirm('저장하지 못했습니다. 그래도 작품을 바꿀까요?')) { renderWorks(); return; }
   }
   S.cur = null; S.conflict = null; S.work = work; S.filter = ''; el.q.value = ''; hideBanner(); endSelect(true);
   showEditor(false); setStatus('idle'); renderWorks();
   if (!work) { S.docs = []; renderList(); return; }
-  const ok = await loadWork(work);
+  const ok = await loadWork(work, seq);
+  if (ok === 'stale' || seq !== S.loadSeq) return;
   if (!ok) return;
   const target = fileName && S.docs.find(d => d.fileName === fileName);
   renderList();
