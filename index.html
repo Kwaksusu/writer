@@ -227,9 +227,9 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 
     <footer class="meter" id="meter" hidden>
       <div class="cell" title="줄바꿈과 #태그는 세지 않습니다"><span class="lbl">공백 포함</span><b id="cWith">0</b></div>
-      <div class="cell" title="줄바꿈과 #태그는 세지 않습니다"><span class="lbl">공백 제외</span><b id="cWithout">0</b></div>
+      <div class="cell" title="공백과 문장부호·특수문자(. , &quot; ? ! … 등)를 빼고 글자와 숫자만 셉니다 (노벨피아 기준). 줄바꿈과 #태그도 세지 않습니다."><span class="lbl">공백 제외</span><b id="cWithout">0</b></div>
       <div class="cell sel" id="cSelCell" hidden><span class="lbl">선택 영역(포함 / 제외)</span><b id="cSel"></b></div>
-      <div class="note">줄바꿈과 #태그는 세지 않음</div>
+      <div class="note">공백 제외는 특수문자도 뺌 · 줄바꿈과 #태그는 세지 않음</div>
       <div class="spacer"></div>
       <div class="status" id="status" aria-live="polite"></div>
       <button id="btnSave" title="Ctrl+S">저장</button>
@@ -326,7 +326,8 @@ const Core = (() => {
   // 공백 포함: 줄바꿈만 뺀 모든 글자. 공백 제외: 모든 공백류와 줄바꿈을 뺀 글자.
   function countText(text) {
     const t = cleanForPost(text);
-    return { withSpaces: gcount(t.replace(/\n/g, '')), noSpaces: gcount(t.replace(/\s/g, '')) };
+    // 공백 제외(노벨피아 기준): 공백·문장부호·특수기호를 빼고 글자(한글·영문 등)와 숫자만 센다
+    return { withSpaces: gcount(t.replace(/\n/g, '')), noSpaces: gcount(t.replace(/[^\p{L}\p{M}\p{N}]/gu, '')) };
   }
 
   const MAP = { '\\': '＼', '/': '／', ':': '：', '*': '＊', '?': '？', '"': '＂', '<': '＜', '>': '＞', '|': '｜' };
