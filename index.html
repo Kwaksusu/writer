@@ -91,7 +91,9 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 .item.pinned{border-bottom:0}
 .list .pin-sep{height:0;border-top:1px dashed var(--line);margin:4px 14px}
 .item .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.item .n{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.item .n{justify-self:end;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.item .m{grid-column:2;justify-self:end;color:var(--muted);font-size:11.5px;opacity:.85;font-variant-numeric:tabular-nums;white-space:nowrap}
+.list.selmode .item .m{grid-column:3}
 .item .tags{grid-column:1/-1;font-size:12.5px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item .tags span{cursor:pointer}
 .item .tags span:hover{text-decoration:underline}
@@ -441,12 +443,23 @@ const el = {
 const S = {
   root: null, works: [], work: null, docs: [], cur: null,
   savedTitle: '', savedBody: '', dirty: false, saving: false, again: false, pending: null,
-  selMode: false, sel: new Set(), backingUp: false, conflict: null, conflictOpen: false, force: null, checking: false, timer: 0, listTimer: 0, draftTimer: 0, firstDirty: 0, filter: '', status: { kind: 'idle' }, toastTimer: 0
+  selMode: false, sel: new Set(), backingUp: false, conflict: null, conflictOpen: false, force: null, checking: false, timer: 0, listTimer: 0, draftTimer: 0, firstDirty: 0, filter: '', status: { kind: 'idle' }, toastTimer: 0, histDone: new Set()
 };
 const fmt = n => n.toLocaleString('ko-KR');
 const p2 = n => String(n).padStart(2, '0');
 const fmtTime = t => { const d = new Date(t); return `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; };
 const DUMMY = '_더미';
+// 목록용 짧은 수정 시각: 오늘 09:12 / 어제 18:51 / 10/05 14:20 / 2025/10/05
+const fmtAgo = t => {
+  const d = new Date(t), n = new Date(), hm = `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(n) - day(d)) / 864e5);
+  if (diff === 0) return `오늘 ${hm}`;
+  if (diff === 1) return `어제 ${hm}`;
+  if (d.getFullYear() === n.getFullYear()) return `${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${hm}`;
+  return `${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())}`;
+};
+const HIST = '기록', HIST_KEEP = 30;
 const stampNow = () => { const d = new Date(); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`; };
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const appErr = (code, message) => Object.assign(new Error(message), { appCode: code });
@@ -658,6 +671,22 @@ async function readText(dir, name) {
   const { text, enc } = Core.decodeBytes(await f.arrayBuffer());
   return { text: text.replace(/\r\n?/g, '\n'), mtime: f.lastModified, enc };
 }
+// 이번에 연 뒤 처음 덮어쓰기 직전에, 디스크에 있던 판을 작품/_더미/기록/화 제목/시각.txt 로 한 부 남긴다.
+// 낡은 화면에서 고쳐 최신 글을 덮어써도 여기서 되살릴 수 있다. 화마다 최근 HIST_KEEP개만 둔다.
+async function snapshotHistory(dir, fileName, text) {
+  const key = Core.nameKey(dir.name) + '/' + Core.nameKey(fileName);
+  if (S.histDone.has(key) || !text.trim()) return;
+  try {
+    const hd = await (await (await dir.getDirectoryHandle(DUMMY, { create: true })).getDirectoryHandle(HIST, { create: true }))
+      .getDirectoryHandle(fileName.replace(/\.txt$/i, ''), { create: true });
+    await writeFile(hd, `${stampNow()}.txt`, text);
+    S.histDone.add(key);
+    const names = [];
+    for await (const [n, h] of hd.entries()) if (h.kind === 'file' && /^\d{4}-\d\d-\d\d \d{6}\.txt$/.test(n)) names.push(n);
+    names.sort().reverse();
+    for (const n of names.slice(HIST_KEEP)) { try { await hd.removeEntry(n); } catch (e) {} }
+  } catch (e) { /* 기록은 보험일 뿐, 실패해도 저장은 계속한다 */ }
+}
 async function backupToDummy(dir, title, label, text) {
   const dummy = await dir.getDirectoryHandle(DUMMY, { create: true });
   const name = `${Core.sanitizeName(title) || '제목없음'} (${label} ${stampNow()}).txt`;
@@ -796,7 +825,7 @@ function renderList() {
     const tags = d.tags.slice(0, 6).map(t => `<span data-tag="${esc(t)}">${esc(t)}</span>`).join(' ') + (d.tags.length > 6 ? ` +${d.tags.length - 6}` : '');
     const picked = S.selMode && S.sel.has(d.fileName);
     const pin = S.selMode ? '' : `<span class="pin${isPin ? ' on' : ''}" data-pin="1" title="${isPin ? '고정 해제' : '맨 위에 고정'}">★</span>`;
-    html += `<li><button type="button" class="item${d === S.cur && !S.selMode ? ' on' : ''}${picked ? ' picked' : ''}${isPin ? ' pinned' : ''}" data-i="${i}">${S.selMode ? '<span class="chk"></span>' : ''}<span class="t">${esc(d.title)}</span><span class="n">${pin}${fmt(d.counts.withSpaces)}자</span>${d.tags.length ? `<span class="tags">${tags}</span>` : ''}</button></li>`;
+    html += `<li><button type="button" class="item${d === S.cur && !S.selMode ? ' on' : ''}${picked ? ' picked' : ''}${isPin ? ' pinned' : ''}" data-i="${i}">${S.selMode ? '<span class="chk"></span>' : ''}<span class="t">${esc(d.title)}</span><span class="n">${pin}${fmt(d.counts.withSpaces)}자</span>${d.mtime ? `<span class="m" title="마지막 수정: ${fmtDateTime(d.mtime)}">${fmtAgo(d.mtime)}</span>` : ''}${d.tags.length ? `<span class="tags">${tags}</span>` : ''}</button></li>`;
   }
   if (!shown) html = `<li class="empty">${S.docs.length ? '검색 결과가 없습니다.' : '아직 화가 없습니다. “새 화”를 눌러 시작하세요.'}</li>`;
   el.list.innerHTML = html; el.list.scrollTop = keep;
@@ -1072,6 +1101,10 @@ async function saveNow(gesture) {
           throw Object.assign(appErr('conflict', 'missing'), { info: { cur, work, disk: null } });
         }
         if (disk.text !== base && disk.text !== body) throw Object.assign(appErr('conflict', 'changed'), { info: { cur, work, disk } });
+        if (disk.text !== body) await snapshotHistory(work.handle, oldName, disk.text);
+      } else {
+        const disk = await readText(work.handle, oldName).catch(() => null);
+        if (disk && disk.text !== body) await snapshotHistory(work.handle, oldName, disk.text);
       }
       await writeFile(work.handle, fileName, body);
       let leftover = '';
@@ -1168,6 +1201,7 @@ async function handleConflict(info) {
   await resolveConflict(info, choice);
 }
 function applyDisk(cur, disk) {
+  S.histDone.clear();
   Object.assign(cur, Core.makeDoc(cur.fileName, disk.text, disk.mtime, disk.enc));
   const st = el.body.scrollTop, a = Math.min(el.body.selectionStart, cur.text.length);
   S.savedTitle = cur.title; S.savedBody = cur.text;
@@ -1226,8 +1260,9 @@ async function openDoc(doc) {
     const disk = await readText(S.work.handle, doc.fileName);
     if (!disk) missing = true;
     else if (disk.text !== doc.text || disk.enc !== doc.enc) Object.assign(doc, Core.makeDoc(doc.fileName, disk.text, disk.mtime, disk.enc));
+    else doc.mtime = disk.mtime;
   } catch (e) {}
-  S.conflict = null;
+  S.conflict = null; S.histDone.clear(); // 열 때마다 첫 덮어쓰기 전 판을 한 부 남긴다
   S.cur = doc; S.savedTitle = doc.title; S.savedBody = doc.text; S.dirty = false; S.firstDirty = 0;
   el.title.value = doc.title; el.body.value = doc.text;
   showEditor(true); hideBanner();
