@@ -1,0 +1,16 @@
+{
+  "name": "초고 메모장",
+  "short_name": "초고메모",
+  "description": "txt를 열고 저장하는 아주 가벼운 메모장. 글자 수(공백 포함/제외)와 글자 크기만 있습니다.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FAFBFA",
+  "theme_color": "#2C6B65",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

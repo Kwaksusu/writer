@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>초고 메모장</title>
+<meta name="theme-color" content="#2C6B65">
+<script>
+// 웹 주소(https)로 열었을 때만 설치 정보와 오프라인 캐시를 켠다. 로컬 파일(file://)로 열면 아무것도 안 함.
+if (/^https?:$/.test(location.protocol)) {
+  const l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.webmanifest'; document.head.appendChild(l);
+  if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+<style>
+:root{
+  --bg:#FAFBFA; --bar:#EDF1F0; --ink:#1E292B; --muted:#5F7377; --line:#CFD9D8;
+  --accent:#2C6B65; --warn:#8A5700; --err:#A5201A; --hover:#DAE4E2; --sel:#B4DDD6;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1B2225; --bar:#171D20; --ink:#DCE4E3; --muted:#8FA1A4; --line:#2B363A;
+        --accent:#7CC3BA; --warn:#E3B650; --err:#F2877F; --hover:#222C30; --sel:#2F8F84; color-scheme:dark;}
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:14px/1.4 "Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",system-ui,sans-serif}
+button{font:inherit;color:inherit;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 11px;cursor:pointer;white-space:nowrap}
+button:hover{background:var(--hover)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.bar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line);flex:none}
+.bar .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);padding:0 6px}
+.bar .name b{color:var(--ink);font-weight:600}
+.size{display:flex;align-items:center;gap:4px}
+.size span{min-width:2.6em;text-align:center;font-variant-numeric:tabular-nums;color:var(--muted)}
+#t{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;color:inherit;padding:16px 20px;font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",system-ui,sans-serif;font-size:18px;line-height:1.8;tab-size:4;word-break:keep-all;overflow-wrap:anywhere}
+#t::selection{background:var(--sel);color:inherit}
+.foot{display:flex;align-items:baseline;gap:22px;padding:6px 14px;background:var(--bar);border-top:1px solid var(--line);flex:none;white-space:nowrap;overflow:hidden}
+.foot .c{display:flex;align-items:baseline;gap:7px}
+.foot .l{color:var(--muted);font-size:12.5px}
+.foot b{font-size:19px;font-weight:650;font-variant-numeric:tabular-nums}
+.foot .sel b{font-size:15px}
+.foot .st{margin-left:auto;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.st.saved{color:var(--accent)} .st.dirty{color:var(--warn)} .st.error{color:var(--err);font-weight:600}
+[hidden]{display:none!important}
+.nosupport{padding:40px 24px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button id="bNew" title="새 파일 (저장할 위치와 이름을 먼저 정합니다)">새로 만들기</button>
+  <button id="bOpen" title="txt 파일 열기 (Ctrl+O)">열기</button>
+  <button id="bSave" title="지금 저장 (Ctrl+S). 위치가 정해지지 않았으면 위치를 고릅니다">저장</button>
+  <div class="name" id="name"></div>
+  <div class="size"><button id="bMinus" title="글자 작게 (Ctrl+-)">A−</button><span id="sz"></span><button id="bPlus" title="글자 크게 (Ctrl++)">A+</button></div>
+</div>
+<textarea id="t" spellcheck="false" aria-label="본문" placeholder="바로 쓰세요. 저장 위치를 정하면(저장 버튼 또는 Ctrl+S) 그 뒤로는 자동 저장됩니다."></textarea>
+<div class="foot">
+  <div class="c"><span class="l">공백 포함</span><b id="cA">0</b></div>
+  <div class="c"><span class="l">공백 제외</span><b id="cB">0</b></div>
+  <div class="c sel" id="cs" hidden><span class="l">선택</span><b id="cSel"></b></div>
+  <div class="st" id="st" aria-live="polite"></div>
+</div>
+<div class="nosupport" id="ns" hidden>이 브라우저는 파일 저장 기능을 지원하지 않습니다. 크롬이나 엣지에서 열어 주세요.</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const t = $('#t'), st = $('#st');
+const fmt = n => n.toLocaleString('ko-KR');
+const p2 = n => String(n).padStart(2, '0');
+const clock = () => { const d = new Date(); return `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; };
+
+/* ---------- 글자 수 (집필기와 같은 기준) ---------- */
+// 공백 포함: 줄바꿈만 뺀 모든 글자. 공백 제외: 공백·문장부호·특수기호를 빼고 글자와 숫자만(노벨피아 기준).
+const SLOW = /[̀-ͯᄀ-ᇿ‍︀-️⃐-⃿゙゚\ud800-\udfff]/;
+let SEG = null;
+function gcount(s) {
+  if (!s) return 0;
+  if (!SLOW.test(s)) return s.length;
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    SEG = SEG || new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+    let n = 0; for (const _ of SEG.segment(s)) n++; return n;
+  }
+  return Array.from(s).length;
+}
+function count(text) {
+  const s = text.normalize('NFC').replace(/\r\n?/g, '\n');
+  return { a: gcount(s.replace(/\n/g, '')), b: gcount(s.replace(/[^\p{L}\p{M}\p{N}]/gu, '')) };
+}
+
+/* ---------- 상태 ---------- */
+const S = { handle: null, name: '', eol: '\r\n', bom: false, saved: '', dirty: false, saving: false, again: false, timer: 0, retryT: 0, retryN: 0 };
+
+function setStatus(kind, msg) { st.textContent = msg || ''; st.className = 'st ' + (kind || ''); }
+function showName() {
+  const mark = S.dirty ? '● ' : '';
+  $('#name').innerHTML = S.handle ? `<b></b>` : '저장 위치 정해지지 않음';
+  if (S.handle) $('#name b').textContent = mark + S.name;
+  else if (S.dirty) $('#name').textContent = '● 저장 위치 정해지지 않음';
+  document.title = (S.handle ? mark + S.name + ' - ' : (S.dirty ? '● ' : '')) + '초고 메모장';
+}
+function updateCounts() {
+  const c = count(t.value);
+  $('#cA').textContent = fmt(c.a); $('#cB').textContent = fmt(c.b);
+}
+function updateSel() {
+  const a = t.selectionStart, b = t.selectionEnd;
+  if (a === b) { $('#cs').hidden = true; return; }
+  const c = count(t.value.slice(a, b));
+  $('#cSel').textContent = `${fmt(c.a)} / ${fmt(c.b)}`; $('#cs').hidden = false;
+}
+
+/* ---------- 글자 크기 (이것만 브라우저에 기억) ---------- */
+let size = 18;
+try { const v = parseInt(localStorage.getItem('memo.size'), 10); if (v >= 10 && v <= 72) size = v; } catch (e) {}
+function applySize() { t.style.fontSize = size + 'px'; $('#sz').textContent = size; try { localStorage.setItem('memo.size', String(size)); } catch (e) {} }
+function bump(d) { size = Math.min(72, Math.max(10, size + d)); applySize(); }
+
+/* ---------- 파일 읽기·쓰기 ---------- */
+const PICK_TYPES = [{ description: '텍스트 파일', accept: { 'text/plain': ['.txt'] } }];
+
+function decode(buf) {
+  let bytes = new Uint8Array(buf), bom = false;
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) { bom = true; bytes = bytes.subarray(3); }
+  let text, enc = 'utf-8';
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+  catch (e) { text = new TextDecoder('euc-kr').decode(bytes); enc = 'euc-kr'; } // 메모장 ANSI 저장분
+  const eol = /\r\n/.test(text) ? '\r\n' : (/\n/.test(text) ? '\n' : '\r\n');
+  return { text: text.replace(/\r\n?/g, '\n'), eol, bom, enc };
+}
+function encodeOut(text) {
+  const body = S.eol === '\r\n' ? text.replace(/\n/g, '\r\n') : text;
+  return S.bom ? new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), body]) : new Blob([body]);
+}
+
+async function writeNow() {
+  const text = t.value;
+  const w = await S.handle.createWritable();
+  try { await w.write(encodeOut(text)); await w.close(); }
+  catch (e) { try { await w.abort(); } catch (_) {} throw e; }
+  return text;
+}
+async function save() {
+  clearTimeout(S.timer);
+  if (!S.handle) return pickSaveLocation();
+  if (S.saving) { S.again = true; return false; }
+  if (!S.dirty) return true;
+  S.saving = true; setStatus('dirty', '저장 중…');
+  try {
+    const text = await writeNow();
+    S.saved = text; S.retryN = 0; clearTimeout(S.retryT);
+    S.dirty = t.value !== S.saved;
+    if (S.dirty) { setStatus('dirty', '수정됨'); schedule(); }
+    else setStatus('saved', `저장됨 ${clock()}`);
+    showName(); return true;
+  } catch (e) {
+    const gone = e && (e.name === 'NotAllowedError' || e.name === 'NotFoundError');
+    setStatus('error', gone ? '저장 실패: 파일에 접근할 수 없습니다. 저장 버튼으로 위치를 다시 정하세요.' : `저장 실패: ${e && e.message || e}. 자동으로 다시 시도합니다.`);
+    if (!gone) retry();
+    return false;
+  } finally {
+    S.saving = false;
+    if (S.again) { S.again = false; if (S.dirty) save(); }
+  }
+}
+function retry() {
+  clearTimeout(S.retryT);
+  const waits = [3000, 10000, 30000, 60000];
+  const w = waits[Math.min(S.retryN++, waits.length - 1)];
+  S.retryT = setTimeout(() => { if (S.dirty && !S.saving) save(); }, w);
+}
+function schedule() { clearTimeout(S.timer); S.timer = setTimeout(save, 800); }
+
+// 저장 위치 고르기(클릭·단축키 직후에만 가능)
+async function pickSaveLocation(suggest) {
+  try {
+    const h = await window.showSaveFilePicker({ suggestedName: suggest || S.name || '초고.txt', types: PICK_TYPES });
+    S.handle = h; S.name = h.name; S.dirty = true; // 새 위치에는 지금 내용을 한 번 쓴다
+    showName();
+    return save();
+  } catch (e) {
+    if (e && e.name === 'AbortError') return false;
+    setStatus('error', `저장 위치를 정하지 못했습니다: ${e && e.message || e}`); return false;
+  }
+}
+
+async function openFile() {
+  let h;
+  try { [h] = await window.showOpenFilePicker({ types: PICK_TYPES, multiple: false }); }
+  catch (e) { if (e && e.name !== 'AbortError') setStatus('error', `열지 못했습니다: ${e.message || e}`); return; }
+  if (S.dirty && S.handle && !(await save())) { if (!confirm('지금 파일을 저장하지 못했습니다. 그래도 다른 파일을 열까요?')) return; }
+  else if (S.dirty && !S.handle && !confirm('저장하지 않은 글이 있습니다. 버리고 열까요?')) return;
+  try {
+    const f = await h.getFile();
+    const d = decode(await f.arrayBuffer());
+    clearTimeout(S.timer);
+    S.handle = h; S.name = h.name; S.eol = d.eol; S.bom = d.bom;
+    t.value = d.text; S.saved = d.text; S.dirty = false;
+    t.setSelectionRange(0, 0); t.scrollTop = 0;
+    updateCounts(); updateSel(); showName();
+    setStatus('saved', d.enc === 'euc-kr' ? '열었습니다. 이 파일은 ANSI(EUC-KR)였고, 저장하면 UTF-8로 바뀝니다' : `열었습니다 ${clock()}`);
+    t.focus();
+  } catch (e) { setStatus('error', `읽지 못했습니다: ${e && e.message || e}`); }
+}
+
+async function newFile() {
+  if (S.dirty && S.handle) await save();
+  else if (S.dirty && !S.handle && !confirm('저장하지 않은 글이 있습니다. 버리고 새로 만들까요?')) return;
+  let h;
+  try { h = await window.showSaveFilePicker({ suggestedName: '초고.txt', types: PICK_TYPES }); }
+  catch (e) { if (e && e.name !== 'AbortError') setStatus('error', `만들지 못했습니다: ${e.message || e}`); return; }
+  clearTimeout(S.timer);
+  S.handle = h; S.name = h.name; S.eol = '\r\n'; S.bom = false;
+  t.value = ''; S.saved = null; S.dirty = true; // 빈 파일을 바로 만든다
+  try { await writeNow(); S.saved = ''; S.dirty = false; setStatus('saved', `만들었습니다 ${clock()}`); }
+  catch (e) { setStatus('error', `만들지 못했습니다: ${e && e.message || e}`); }
+  updateCounts(); updateSel(); showName(); t.focus();
+}
+
+/* ---------- 이벤트 ---------- */
+function onEdit() {
+  S.dirty = S.saved === null ? true : t.value !== S.saved;
+  updateCounts();
+  if (!S.dirty) { clearTimeout(S.timer); showName(); setStatus('saved', `저장됨 ${clock()}`); return; }
+  showName();
+  if (S.handle) { setStatus('dirty', '수정됨'); schedule(); }
+  else setStatus('dirty', '저장 위치를 정하세요 (저장 버튼 / Ctrl+S)');
+}
+t.addEventListener('input', onEdit);
+['select', 'keyup', 'mouseup', 'focus'].forEach(ev => t.addEventListener(ev, updateSel));
+$('#bNew').onclick = newFile;
+$('#bOpen').onclick = openFile;
+$('#bSave').onclick = () => { if (S.handle && !S.dirty) { setStatus('saved', `저장됨 ${clock()}`); return; } save(); };
+$('#bMinus').onclick = () => bump(-1);
+$('#bPlus').onclick = () => bump(1);
+document.addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod || e.altKey) return;
+  if (e.code === 'KeyS') { e.preventDefault(); if (e.shiftKey) pickSaveLocation(); else save(); }
+  else if (e.code === 'KeyO') { e.preventDefault(); openFile(); }
+  else if (e.code === 'Equal' || e.code === 'NumpadAdd') { e.preventDefault(); bump(1); }
+  else if (e.code === 'Minus' || e.code === 'NumpadSubtract') { e.preventDefault(); bump(-1); }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && S.dirty && S.handle) save(); });
+window.addEventListener('blur', () => { if (S.dirty && S.handle) save(); });
+window.addEventListener('pagehide', () => { if (S.dirty && S.handle) save(); });
+window.addEventListener('beforeunload', e => { if (S.dirty || S.saving) { e.preventDefault(); e.returnValue = ''; } });
+
+if (!window.showSaveFilePicker || !window.showOpenFilePicker) {
+  $('#ns').hidden = false;
+  // 그래도 쓰기는 가능하게 두고, 저장 버튼만 막는다
+  ['#bNew', '#bOpen', '#bSave'].forEach(s => { $(s).disabled = true; });
+}
+window.__memo = { S, count, save, newFile, openFile, decode };
+applySize(); updateCounts(); showName(); t.focus();
+</script>
+</body>
+</html>
