@@ -980,7 +980,7 @@ function layoutColumn() {
   const b = el.body, sheet = b.parentElement;
   if (el.paper.hidden || !sheet.clientWidth) return;
   const W = el.title.parentElement.getBoundingClientRect().width, side = (sheet.clientWidth - W) / 2;
-  const sbw = Math.max(0, b.offsetWidth - b.clientWidth);
+  const sbw = Math.max(0, b.offsetWidth - b.clientWidth); TW.sbw = b.offsetWidth - b.clientWidth;
   b.style.paddingLeft = side + 'px'; b.style.paddingRight = Math.max(0, side - sbw) + 'px';
 }
 function twLayout() {
@@ -1164,7 +1164,8 @@ const clearDraft = () => { clearTimeout(S.draftTimer); try { localStorage.remove
 const fileText = () => Core.joinHead(el.tags.value, el.body.value, S.headRaw);
 function setEditorText(t) {
   const { head, body } = Core.splitHead(t);
-  S.headRaw = head; el.tags.value = head.replace(/\n$/, '').trim().replace(/[ \t]+/g, ' '); el.body.value = body;
+  S.headRaw = head; el.tags.value = Core.norm(head).replace(/\n$/, '').trim().replace(/[ \t]+/g, ' '); el.body.value = body; // 태그 칸은 맥 앱이 자모 분리로 저장한 태그도 보통 한글로
+  layoutColumn(); // 글 길이가 바뀌면 스크롤바가 생기거나 없어질 수 있다(윈도우)
 }
 function onEdit() {
   if (!S.cur) return;
