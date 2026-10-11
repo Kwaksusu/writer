@@ -203,6 +203,21 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .fcount{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:52px;text-align:right;padding-right:2px;white-space:nowrap}
 .fcount.none{color:var(--err)}
 #fToggle[aria-pressed="true"]{background:var(--hover)}
+.mdl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:var(--ink);pointer-events:none;box-sizing:border-box;border:0;margin:0}
+.mdl .mk{color:var(--muted);opacity:.6}
+.mdl .cbdash{opacity:0}
+.mdl b{font-weight:inherit;-webkit-text-stroke:.032em currentColor}
+.mdl s{text-decoration:line-through;text-decoration-thickness:.07em}
+.mdl .cb{position:relative;color:transparent}
+.mdl .cb::before{content:"";position:absolute;left:50%;top:50%;width:.8em;height:.8em;transform:translate(-50%,-50%);border:1.6px solid var(--muted);border-radius:.17em;box-sizing:border-box}
+.mdl .cb.on::before{background:var(--accent);border-color:var(--accent)}
+.mdl .cb.on::after{content:"";position:absolute;left:50%;top:50%;width:.2em;height:.4em;border:solid var(--accent-ink);border-width:0 .1em .1em 0;transform:translate(-50%,-62%) rotate(45deg)}
+.mdl .done{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
+.body.md{color:transparent;-webkit-text-fill-color:transparent}
+.body.md::selection{color:transparent;-webkit-text-fill-color:transparent;background:color-mix(in srgb, var(--sel-bg) 60%, transparent)}
+.body.md::placeholder{-webkit-text-fill-color:var(--muted);color:var(--muted);opacity:.8}
+.chkrow{display:flex!important;align-items:center;gap:8px;font-size:13px!important;color:var(--ink)!important;margin:0!important}
+.chkrow input{width:auto!important}
 .fhl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:transparent;pointer-events:none;box-sizing:border-box;border:0;margin:0}
 .fhl mark{color:transparent;background:color-mix(in srgb, var(--accent) 24%, transparent);border-radius:2px}
 .fhl mark.cur{background:color-mix(in srgb, var(--warn) 55%, transparent);box-shadow:0 0 0 1.5px var(--warn)}
@@ -301,7 +316,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
       <button id="btnRoot" class="pill" title="작업 폴더 바꾸기"></button>
       <span class="split pill-group"><button id="btnBackup" title="작업 폴더 전체를 백업 폴더로 복사합니다">백업</button><button id="btnBackupWhere" title="백업 폴더 바꾸기">위치 변경</button></span>
       <div class="spacer"></div>
-      <button id="btnCopyBody" class="pill" disabled title="#태그를 뺀 본문을 복사합니다">본문 복사</button>
+      <button id="btnCopyBody" class="pill" disabled title="#태그와 마크다운 기호(**, ~~, 체크 줄)를 뺀 본문을 복사합니다">본문 복사</button>
       <button id="btnFind" class="ib" title="찾기·바꾸기 (Ctrl/Cmd+F)" aria-label="찾기·바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.8"/><path d="M15 15l4.8 4.8"/></svg></button>
       <button id="btnTW" class="ib" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정" aria-label="타자기 모드" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9V3.8h8V9"/><path d="M4 9h16"/><rect x="3.5" y="11.2" width="17" height="8.6" rx="2.2"/><path d="M7.6 14.3h.01M10.5 14.3h.01M13.5 14.3h.01M16.4 14.3h.01" stroke-width="2.2"/><path d="M9 17.3h6"/></svg></button>
       <button id="btnPin" class="ib" disabled title="이 화를 목록 맨 위에 고정" aria-label="고정" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 3.6 14.5 8.9 20.3 9.6 16 13.6 17.2 19.4 12 16.5 6.8 19.4 8 13.6 3.7 9.6 9.5 8.9"/></svg></button>
@@ -338,13 +353,14 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
         </div>
         <div class="tw-line" id="twLine" hidden aria-hidden="true"></div>
         <div class="fhl" id="fHl" hidden aria-hidden="true"></div>
+        <div class="mdl" id="mdl" hidden aria-hidden="true"></div>
         <textarea id="body" class="body" spellcheck="false" aria-label="본문" placeholder="본문을 쓰세요."></textarea>
       </div>
     </div>
 
     <footer class="meter" id="meter" hidden>
       <div class="counts">
-        <div class="cell" title="줄바꿈과 #태그는 세지 않습니다"><span class="lbl"><span class="full">공백 포함</span><span class="short">포함</span></span><b id="cWith">0</b></div>
+        <div class="cell" title="줄바꿈과 #태그, 마크다운 기호(**, ~~, 체크 줄)는 세지 않습니다"><span class="lbl"><span class="full">공백 포함</span><span class="short">포함</span></span><b id="cWith">0</b></div>
         <div class="cell" title="공백과 문장부호·특수문자(. , &quot; ? ! … 등)를 빼고 글자와 숫자만 셉니다 (노벨피아 기준). 줄바꿈과 #태그도 세지 않습니다."><span class="lbl"><span class="full">공백 제외</span><span class="short">제외</span></span><b id="cWithout">0</b></div>
         <div class="cell sel" id="cSelCell" hidden title="선택한 부분의 글자 수 (공백 포함 / 공백 제외)"><span class="lbl"><span class="full">선택 영역</span><span class="short">선택</span></span><b id="cSel"></b></div>
       </div>
@@ -381,6 +397,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     <label for="lsIn">자간(em)</label><input id="lsIn" type="number" min="-0.1" max="0.5" step="0.01">
     <label for="lhIn">줄 간격</label><input id="lhIn" type="number" min="1.2" max="3" step="0.05">
     <label for="wIn">한 줄 글자 수</label><input id="wIn" type="number" min="20" max="80" step="1">
+    <label for="mdIn">마크다운</label><label class="chkrow"><input id="mdIn" type="checkbox"> **굵게** ~~취소선~~ - [ ] 체크를 화면에서 모양으로 보기</label>
     <label id="themeLbl">테마</label>
     <div class="themes" id="themeSel" role="radiogroup" aria-labelledby="themeLbl"></div>
     <label>백업 폴더</label><div class="bkrow"><span id="bkName">지정 안 됨</span><button id="bkChange" type="button">변경</button></div>
@@ -426,11 +443,21 @@ const Core = (() => {
     return out;
   }
 
-  // 연재 사이트에 붙여 넣을 본문: #태그를 지우고, 태그만 있던 줄은 없앤다.
+  // 마크다운(화면에서만 모양): **굵게**, ~~취소선~~, - [ ] 체크 줄
+  const CB_RE = /^([ \t]*)([-*+])([ \t]+)\[([ xX])\](.*)$/;
+  const MD_RE = () => /\*\*(?=\S)(.+?)(?<=\S)\*\*|~~(?=\S)(.+?)(?<=\S)~~/g;
+  function stripMd(line) {
+    let prev;
+    do { prev = line; line = line.replace(MD_RE(), (m, a, b) => a !== undefined ? a : b); } while (line !== prev); // 겹친 것(**~~가~~**)까지
+    return line;
+  }
+  // 연재 사이트에 붙여 넣을 본문: #태그를 지우고, 태그만 있던 줄은 없앤다. 마크다운 기호도 지우고 체크 줄은 뺀다.
   function cleanForPost(text) {
     const lines = norm(text).split('\n');
     const out = [];
-    for (const line of lines) {
+    for (let line of lines) {
+      if (CB_RE.test(line)) continue;
+      line = stripMd(line);
       const m = tagRe().exec(line);
       if (!m) { out.push(line); continue; }
       const lead = line.match(/^[ \t]*/)[0].length;
@@ -521,7 +548,7 @@ const Core = (() => {
     if (rawHead && normTags(rawHead) === h) return rawHead.endsWith('\n') || !body ? rawHead + body : rawHead + '\n' + body;
     return h + '\n' + body;
   }
-  return { nameKey, norm, gcount, extractTags, cleanForPost, countText, sanitizeName, nextTitle, compare, matchDoc, makeDoc, decodeBytes, splitHead, normTags, joinHead };
+  return { nameKey, norm, gcount, extractTags, cleanForPost, countText, sanitizeName, nextTitle, compare, matchDoc, makeDoc, decodeBytes, splitHead, normTags, joinHead, CB_RE, MD_RE, stripMd };
 })();
 /*CORE-END*/
 
@@ -534,7 +561,7 @@ const el = {
   btnReload: $('#btnReload'), btnRenameWork: $('#btnRenameWork'), btnDelWork: $('#btnDelWork'), btnSelect: $('#btnSelect'),
   selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
   btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
-  fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
+  fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), mdl: $('#mdl'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
   title: $('#title'), tags: $('#tags'), body: $('#body'), meter: $('#meter'), cWith: $('#cWith'), cWithout: $('#cWithout'),
   cSelCell: $('#cSelCell'), cSel: $('#cSel'), status: $('#status'), btnSave: $('#btnSave'), toast: $('#toast'), jump: $('#jump'), btnTop: $('#btnTop'), btnBottom: $('#btnBottom')
@@ -566,7 +593,7 @@ const appErr = (code, message) => Object.assign(new Error(message), { appCode: c
 
 /* ---------- 설정 ---------- */
 const SKEY = 'writer.settings';
-const DEFAULTS = { tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
+const DEFAULTS = { md: true, tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
 function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 const cfg = Object.assign({}, DEFAULTS, loadJSON(SKEY) || {});
@@ -1012,12 +1039,13 @@ function layoutColumn() {
   const W = el.title.parentElement.getBoundingClientRect().width, side = (sheet.clientWidth - W) / 2;
   const sbw = Math.max(0, b.offsetWidth - b.clientWidth); TW.sbw = b.offsetWidth - b.clientWidth;
   b.style.paddingLeft = side + 'px'; b.style.paddingRight = Math.max(0, side - sbw) + 'px';
+  mdBox();
 }
 function twLayout() {
   layoutColumn();
   const b = el.body, on = cfg.typewriter && !el.paper.hidden;
   el.btnTW.classList.toggle('on', !!cfg.typewriter); el.btnTW.setAttribute('aria-pressed', String(!!cfg.typewriter));
-  if (!on) { b.style.paddingTop = ''; b.style.paddingBottom = ''; el.twLine.hidden = true; if (FIND.open) hlBox(); return; }
+  if (!on) { b.style.paddingTop = ''; b.style.paddingBottom = ''; el.twLine.hidden = true; if (FIND.open) hlBox(); mdBox(); return; }
   const H = b.clientHeight, lh = twLineHeight();
   if (!H) return;
   const pad = Math.max(18, Math.round(H / 2 - lh / 2));
@@ -1029,6 +1057,7 @@ function twLayout() {
   el.twLine.style.width = Math.max(0, b.clientWidth - pl - pr) + 'px';
   el.twLine.hidden = false;
   if (FIND.open) hlBox();
+  mdBox();
 }
 // 긴 원고에서도 빠르게: 줄(문단)마다 블록 하나로 나눈 복제본을 유지하고, 바뀐 줄만 고친다.
 function twStyle(m) {
@@ -1055,11 +1084,12 @@ function twSync(lines) {
   // old[a .. old.length-b) 를 lines[a .. lines.length-b) 로 교체
   const oldEnd = old.length - b, newEnd = lines.length - b;
   const common = Math.min(oldEnd - a, newEnd - a);
-  for (let i = 0; i < common; i++) kids[a + i].textContent = lines[a + i] || '​';
+  const put = (d, t) => { d.textContent = t; if (!t) d.appendChild(document.createElement('br')); }; // 빈 줄은 <br>: 대체 글꼴 높이가 끼어들지 않게(본문 칸과 줄 높이 정확히 같게)
+  for (let i = 0; i < common; i++) put(kids[a + i], lines[a + i]);
   for (let i = oldEnd - 1; i >= a + common; i--) kids[i].remove();
   if (newEnd > a + common) {
     const frag = document.createDocumentFragment();
-    for (let i = a + common; i < newEnd; i++) { const d = document.createElement('div'); d.textContent = lines[i] || '​'; frag.appendChild(d); }
+    for (let i = a + common; i < newEnd; i++) { const d = document.createElement('div'); put(d, lines[i]); frag.appendChild(d); }
     m.insertBefore(frag, kids[a + common] || null);
   }
   TW.lines = lines;
@@ -1213,10 +1243,13 @@ const FIND = { open: false, list: [], i: -1, timer: 0 };
 const reEsc = q => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function findRe() { const q = el.fq.value; return q ? new RegExp(reEsc(q), 'giu') : null; }
 // 찾은 곳 표시: 본문 칸 뒤에 같은 모양으로 겹친 판에 형광펜을 칠한다(본문 칸은 배경이 투명)
-function hlBox() {
-  const b = el.body, h = el.fHl, cs = getComputedStyle(b);
-  for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'wordSpacing', 'lineHeight', 'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom', 'wordBreak', 'overflowWrap', 'tabSize', 'fontKerning', 'fontFeatureSettings', 'textRendering']) h.style[k] = cs[k];
-  h.style.top = b.offsetTop + 'px'; h.style.left = b.offsetLeft + 'px';
+function hlBox() { layerBox(el.fHl); }
+// 본문 칸과 똑같은 자리·모양으로 겹치는 판(찾기 형광펜, 마크다운 모양)
+function layerBox(h) {
+  const b = el.body, cs = getComputedStyle(b);
+  for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'letterSpacing', 'wordSpacing', 'lineHeight', 'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom', 'wordBreak', 'overflowWrap', 'tabSize', 'fontKerning', 'fontFeatureSettings', 'fontVariantLigatures', 'textRendering', 'textTransform']) h.style[k] = cs[k];
+  const br = b.getBoundingClientRect(), pr = b.offsetParent ? b.offsetParent.getBoundingClientRect() : { top: 0, left: 0 };
+  h.style.top = (br.top - pr.top) + 'px'; h.style.left = (br.left - pr.left) + 'px'; // 소수점 자리까지 정확히
   h.style.width = b.clientWidth + 'px'; h.style.height = b.clientHeight + 'px';
   h.scrollTop = b.scrollTop;
 }
@@ -1292,6 +1325,87 @@ function closeFind() {
   el.body.focus({ preventScroll: true }); updateSelection();
 }
 
+/* ---------- 마크다운 모양(집필기 화면에서만. 파일에는 기호 그대로) ---------- */
+// 본문 칸 글자는 투명하게 두고, 같은 자리에 겹친 판에 모양 입힌 글자를 그린다. 커서·선택·입력은 본문 칸 그대로.
+const MD = { lines: [], on: false };
+function mdInline(t) {
+  const re = Core.MD_RE(); let out = '', at = 0, m;
+  while ((m = re.exec(t))) {
+    out += esc(t.slice(at, m.index));
+    out += m[1] !== undefined ? `<span class="mk">**</span><b>${mdInline(m[1])}</b><span class="mk">**</span>` : `<span class="mk">~~</span><s>${mdInline(m[2])}</s><span class="mk">~~</span>`;
+    at = re.lastIndex;
+  }
+  return out + esc(t.slice(at));
+}
+function mdLine(t) {
+  if (!t) return '';
+  const c = Core.CB_RE.exec(t);
+  if (!c) return mdInline(t);
+  const on = c[4] !== ' ';
+  return `${esc(c[1])}<span class="mk cbdash">${esc(c[2])}</span>${esc(c[3])}<span class="cb${on ? ' on' : ''}">[${esc(c[4])}]</span>${esc(/^[ \t]*/.exec(c[5])[0])}<span class="${on ? 'done' : ''}">${mdInline(c[5].replace(/^[ \t]*/, ''))}</span>`;
+}
+// 바뀐 줄만 다시 그린다(긴 원고에서도 가볍게)
+function mdSync() {
+  if (!MD.on) return;
+  const lines = el.body.value.split('\n'), old = MD.lines, box = el.mdl, kids = box.children;
+  let a = 0; const n = Math.min(old.length, lines.length);
+  while (a < n && old[a] === lines[a]) a++;
+  let z = 0;
+  while (z < n - a && old[old.length - 1 - z] === lines[lines.length - 1 - z]) z++;
+  const oldEnd = old.length - z, newEnd = lines.length - z, common = Math.min(oldEnd - a, newEnd - a);
+  for (let i = 0; i < common; i++) kids[a + i].innerHTML = mdLine(lines[a + i]) + '\n';
+  for (let i = oldEnd - 1; i >= a + common; i--) kids[i].remove();
+  if (newEnd > a + common) {
+    const frag = document.createDocumentFragment();
+    for (let i = a + common; i < newEnd; i++) { const d = document.createElement('span'); d.innerHTML = mdLine(lines[i]) + '\n'; frag.appendChild(d); }
+    box.insertBefore(frag, kids[a + common] || null);
+  }
+  MD.lines = lines;
+  box.scrollTop = el.body.scrollTop;
+}
+function mdApply() {
+  MD.on = cfg.md !== false;
+  el.body.classList.toggle('md', MD.on); el.mdl.hidden = !MD.on;
+  MD.lines = []; el.mdl.textContent = '';
+  if (MD.on) { mdSync(); if (!el.paper.hidden) layerBox(el.mdl); }
+}
+function mdBox() { if (MD.on && !el.paper.hidden) { layerBox(el.mdl); el.mdl.scrollTop = el.body.scrollTop; } }
+// Ctrl/Cmd+B 굵게, Ctrl/Cmd+Shift+X 취소선: 고른 글자를 감싸거나, 이미 감싸져 있으면 푼다
+function mdWrap(mk) {
+  const b = el.body, v = b.value; let s = b.selectionStart, e = b.selectionEnd;
+  while (s < e && /\s/.test(v[s])) s++;
+  while (e > s && /\s/.test(v[e - 1])) e--;
+  const k = mk.length;
+  if (s === e) { bodyEdit(v.slice(0, s) + mk + mk + v.slice(e), s + k, s + k); return; }
+  if (v.slice(s - k, s) === mk && v.slice(e, e + k) === mk) { bodyEdit(v.slice(0, s - k) + v.slice(s, e) + v.slice(e + k), s - k, e - k); return; }
+  const sel = v.slice(s, e);
+  if (sel.length > 2 * k && sel.startsWith(mk) && sel.endsWith(mk)) { bodyEdit(v.slice(0, s) + sel.slice(k, -k) + v.slice(e), s, e - 2 * k); return; }
+  bodyEdit(v.slice(0, s) + mk + sel + mk + v.slice(e), s + k, e + k);
+}
+// Ctrl/Cmd+Enter: 지금 줄을 체크 줄로 만들거나, 체크 줄이면 체크/해제
+function mdToggleLine(pos, keepCaret) {
+  const b = el.body, v = b.value, ls = v.lastIndexOf('\n', pos - 1) + 1;
+  let le = v.indexOf('\n', pos); if (le < 0) le = v.length;
+  const line = v.slice(ls, le), c = Core.CB_RE.exec(line), cs = b.selectionStart, ce = b.selectionEnd;
+  let nl, shift = 0;
+  if (c) nl = c[1] + c[2] + c[3] + '[' + (c[4] === ' ' ? 'x' : ' ') + ']' + c[5];
+  else { const li = /^([ \t]*)([-*+])([ \t]+)/.exec(line); if (li) { nl = li[0] + '[ ] ' + line.slice(li[0].length); shift = 4; } else { const ind = /^[ \t]*/.exec(line)[0]; nl = ind + '- [ ] ' + line.slice(ind.length); shift = 6; } }
+  const sh = p => p >= ls ? p + shift : p;
+  bodyEdit(v.slice(0, ls) + nl + v.slice(le), keepCaret ? cs : sh(cs), keepCaret ? ce : sh(ce));
+}
+// 체크 줄에서 Enter: 다음 줄도 체크 줄로. 빈 체크 줄에서 Enter: 체크 표시를 지우고 끝
+function mdAfterBreak() {
+  const b = el.body, v = b.value, p = b.selectionStart;
+  if (p !== b.selectionEnd || v[p - 1] !== '\n') return;
+  const ps = v.lastIndexOf('\n', p - 2) + 1, prev = v.slice(ps, p - 1), c = Core.CB_RE.exec(prev);
+  if (!c) return;
+  let nv, caret;
+  if (!c[5].trim()) { nv = v.slice(0, ps) + c[1] + v.slice(p); caret = ps + c[1].length; }
+  else { const mk = c[1] + c[2] + c[3] + '[ ] '; nv = v.slice(0, p) + mk + v.slice(p); caret = p + mk.length; }
+  UN.applying = true; b.value = nv; b.setSelectionRange(caret, caret); UN.applying = false;
+  UN.last = unState(); onEdit(); updateSelection();
+}
+
 const DKEY = 'writer.draft';
 function scheduleDraft() {
   clearTimeout(S.draftTimer);
@@ -1307,9 +1421,10 @@ const fileText = () => Core.joinHead(el.tags.value, el.body.value, S.headRaw);
 function setEditorText(t) {
   const { head, body } = Core.splitHead(t);
   S.headRaw = head; el.tags.value = Core.norm(head).replace(/\n$/, '').trim().replace(/[ \t]+/g, ' '); el.body.value = body; // 태그 칸은 맥 앱이 자모 분리로 저장한 태그도 보통 한글로
-  layoutColumn(); // 글 길이가 바뀌면 스크롤바가 생기거나 없어질 수 있다(윈도우)
+  mdSync(); layoutColumn(); // 글 길이가 바뀌면 스크롤바가 생기거나 없어질 수 있다(윈도우)
 }
 function onEdit() {
+  mdSync();
   if (!S.cur) return;
   S.dirty = el.title.value !== S.savedTitle || fileText() !== S.savedBody;
   if (S.dirty) {
@@ -1948,13 +2063,32 @@ function wire() {
   el.tags.addEventListener('input', onEdit);
   el.tags.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); el.body.focus(); } });
   el.tags.addEventListener('blur', () => { const v = Core.normTags(el.tags.value); if (v !== el.tags.value.trim().replace(/[ \t]+/g, ' ')) { el.tags.value = v; onEdit(); } });
-  el.body.addEventListener('input', e => { unTrack(e); onEdit(); updateSelection(); });
+  el.body.addEventListener('input', e => { unTrack(e); onEdit(); updateSelection(); if (MD.on && /^insert(LineBreak|Paragraph)$/.test(e.inputType)) mdAfterBreak(); });
+  el.body.addEventListener('scroll', () => { if (MD.on) el.mdl.scrollTop = el.body.scrollTop; }, { passive: true });
+  // 체크 칸 클릭으로 체크/해제
+  el.body.addEventListener('mousedown', e => { MD.down = [e.clientX, e.clientY]; });
+  el.body.addEventListener('click', e => {
+    if (!MD.on || e.shiftKey || e.button !== 0 || !MD.down || Math.hypot(e.clientX - MD.down[0], e.clientY - MD.down[1]) > 4) return;
+    const b = el.body, p = b.selectionStart; if (p !== b.selectionEnd) return;
+    const v = b.value, ls = v.lastIndexOf('\n', p - 1) + 1; let le = v.indexOf('\n', p); if (le < 0) le = v.length;
+    const c = Core.CB_RE.exec(v.slice(ls, le)); if (!c) return;
+    const a = ls + c[1].length + c[2].length + c[3].length; // '[' 위치
+    if (p < a || p > a + 3) return;
+    // 실제로 네모 칸 위를 눌렀는지 화면 좌표로 한 번 더 확인
+    const ln = el.mdl.children[v.slice(0, ls).split('\n').length - 1]; const cb = ln && ln.querySelector('.cb');
+    if (!cb) return; const r = cb.getBoundingClientRect();
+    if (e.clientX < r.left - 3 || e.clientX > r.right + 3 || e.clientY < r.top - 3 || e.clientY > r.bottom + 3) return;
+    mdToggleLine(p, true);
+  });
   // 되돌리기 키: Ctrl/Cmd+Z, 다시 실행: Ctrl/Cmd+Shift+Z, Ctrl+Y
   el.body.addEventListener('keydown', e => {
     if (e.isComposing || e.altKey) return;
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) unRedo(); else unUndo(); return; }
     if (e.ctrlKey && !e.metaKey && e.code === 'KeyY') { e.preventDefault(); unRedo(); return; }
+    if (mod && !e.shiftKey && e.code === 'KeyB') { e.preventDefault(); mdWrap('**'); return; }
+    if (mod && e.shiftKey && e.code === 'KeyX') { e.preventDefault(); mdWrap('~~'); return; }
+    if (mod && e.key === 'Enter') { e.preventDefault(); mdToggleLine(el.body.selectionStart, false); return; }
     if (/^(Arrow|Page|Home|End)/.test(e.key)) UN.force = true; // 커서를 옮기면 다음 입력은 새 묶음
   });
   // 메뉴(우클릭·편집 메뉴)의 실행 취소도 같은 방식으로
@@ -1973,7 +2107,7 @@ function wire() {
     if (s && s !== el.title.value) { el.title.value = s; onEdit(); }
   });
   el.btnSave.onclick = () => saveNow(true);
-  el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그 제외)' : '복사하지 못했습니다'); };
+  el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그·마크다운 기호 제외)' : '복사하지 못했습니다'); };
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) { e.preventDefault(); saveNow(true); }
     // 찾기 Ctrl/Cmd+F, 바꾸기 Ctrl+H(윈도우)·Cmd+Option+F(맥), 다음·이전 Ctrl/Cmd+G·Shift+G
@@ -1990,7 +2124,7 @@ function wire() {
   // 설정
   $('#btnSettings').onclick = () => {
     $('#fontSel').value = cfg.font; $('#fontCustom').value = cfg.custom; $('#sizeIn').value = cfg.size; $('#lsIn').value = cfg.ls;
-    $('#lhIn').value = cfg.lh; $('#wIn').value = cfg.wch; $('#setDlg').showModal();
+    $('#lhIn').value = cfg.lh; $('#wIn').value = cfg.wch; $('#mdIn').checked = cfg.md !== false; $('#setDlg').showModal();
     kvGet('backup').then(h => { $('#bkName').textContent = h ? h.name : '지정 안 됨'; });
   };
   $('#setClose').onclick = () => $('#setDlg').close();
@@ -2002,6 +2136,7 @@ function wire() {
   bind('#lhIn', v => { cfg.lh = num(v, cfg.lh, 1.2, 3); });
   bind('#wIn', v => { cfg.wch = num(v, cfg.wch, 20, 80); });
   $('#themeSel').innerHTML = THEMES.map(([k, l, tone, bg, ink, ac]) => `<button type="button" role="radio" data-theme="${k}" title="${l}" style="--tb:${bg};--ti:${ink};--ta:${ac}"><span class="sw"><span class="sw-t">가</span><span class="sw-a"></span></span><span class="sw-l">${l}</span></button>`).join('');
+  $('#mdIn').addEventListener('change', () => { cfg.md = $('#mdIn').checked; saveCfg(); mdApply(); });
   $('#themeSel').addEventListener('click', e => { const b = e.target.closest('button[data-theme]'); if (!b) return; cfg.theme = b.dataset.theme; saveCfg(); applyCfg(); });
   applyTheme();
 }
@@ -2016,7 +2151,7 @@ async function copyText(text) {
 }
 
 async function boot() {
-  buildFontOptions(); applyCfg(); wire(); updateBackupBtn();
+  buildFontOptions(); applyCfg(); wire(); mdApply(); updateBackupBtn();
   if (!window.showDirectoryPicker) { showGate('unsupported'); return; }
   const h = await kvGet('root');
   if (h) {
