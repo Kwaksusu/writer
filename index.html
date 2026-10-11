@@ -194,6 +194,18 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .paper{position:relative}
 .jump{position:absolute;z-index:3;bottom:20px;right:max(46px, calc(50% - var(--ed-wch) * var(--ed-size) / 2 - 54px));display:flex;flex-direction:column;gap:8px;opacity:.45;transition:opacity .15s}
 .jump:hover{opacity:1}
+.findbar{position:absolute;z-index:4;top:8px;right:28px;width:min(360px,calc(100% - 20px));background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:6px;display:flex;flex-direction:column;gap:6px}
+.frow{display:flex;align-items:center;gap:4px}
+.frow input{flex:1;min-width:0;padding:5px 8px}
+.frow button:not(.ib){padding:5px 10px;font-size:13px}
+.ib.sm{width:28px;height:28px;border-radius:7px}
+.ib.sm svg{width:17px;height:17px}
+.fcount{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:52px;text-align:right;padding-right:2px;white-space:nowrap}
+.fcount.none{color:var(--err)}
+#fToggle[aria-pressed="true"]{background:var(--hover)}
+.fhl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:transparent;pointer-events:none;box-sizing:border-box;border:0;margin:0}
+.fhl mark{color:transparent;background:color-mix(in srgb, var(--accent) 24%, transparent);border-radius:2px}
+.fhl mark.cur{background:color-mix(in srgb, var(--warn) 55%, transparent);box-shadow:0 0 0 1.5px var(--warn)}
 .jb{border-radius:50%;background:var(--paper);border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--muted)}
 .jb:hover{color:var(--ink)}
 .status.saved{color:var(--accent)}
@@ -290,6 +302,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
       <span class="split pill-group"><button id="btnBackup" title="작업 폴더 전체를 백업 폴더로 복사합니다">백업</button><button id="btnBackupWhere" title="백업 폴더 바꾸기">위치 변경</button></span>
       <div class="spacer"></div>
       <button id="btnCopyBody" class="pill" disabled title="#태그를 뺀 본문을 복사합니다">본문 복사</button>
+      <button id="btnFind" class="ib" title="찾기·바꾸기 (Ctrl/Cmd+F)" aria-label="찾기·바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.8"/><path d="M15 15l4.8 4.8"/></svg></button>
       <button id="btnTW" class="ib" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정" aria-label="타자기 모드" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9V3.8h8V9"/><path d="M4 9h16"/><rect x="3.5" y="11.2" width="17" height="8.6" rx="2.2"/><path d="M7.6 14.3h.01M10.5 14.3h.01M13.5 14.3h.01M16.4 14.3h.01" stroke-width="2.2"/><path d="M9 17.3h6"/></svg></button>
       <button id="btnPin" class="ib" disabled title="이 화를 목록 맨 위에 고정" aria-label="고정" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 3.6 14.5 8.9 20.3 9.6 16 13.6 17.2 19.4 12 16.5 6.8 19.4 8 13.6 3.7 9.6 9.5 8.9"/></svg></button>
       <button id="btnSettings" class="ib" title="설정" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/></svg></button>
@@ -303,12 +316,28 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
         <button type="button" class="ib jb" id="btnTop" title="맨 위로" aria-label="맨 위로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 5h11M12 9v10M7.8 13.2L12 9l4.2 4.2"/></svg></button>
         <button type="button" class="ib jb" id="btnBottom" title="맨 아래로" aria-label="맨 아래로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 19h11M12 5v10M7.8 10.8L12 15l4.2-4.2"/></svg></button>
       </div>
+      <div class="findbar" id="findBar" hidden role="search" aria-label="찾기·바꾸기">
+        <div class="frow">
+          <input id="fq" type="text" placeholder="본문에서 찾기" autocomplete="off" spellcheck="false" aria-label="찾을 말">
+          <span class="fcount" id="fCount" aria-live="polite"></span>
+          <button type="button" class="ib sm" id="fPrev" title="이전 (Shift+Enter)" aria-label="이전"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14.5l5-5 5 5"/></svg></button>
+          <button type="button" class="ib sm" id="fNext" title="다음 (Enter)" aria-label="다음"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9.5l5 5 5-5"/></svg></button>
+          <button type="button" class="ib sm" id="fToggle" title="바꾸기 칸 열기·닫기" aria-label="바꾸기 열기" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8.5h12.5M14.5 5.5l3 3-3 3M19 15.5H6.5M9.5 12.5l-3 3 3 3"/></svg></button>
+          <button type="button" class="ib sm" id="fClose" title="닫기 (Esc)" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
+        </div>
+        <div class="frow" id="fRepRow" hidden>
+          <input id="fr" type="text" placeholder="바꿀 말" autocomplete="off" spellcheck="false" aria-label="바꿀 말">
+          <button type="button" id="fRep" title="지금 표시된 한 곳 바꾸기 (Enter)">바꾸기</button>
+          <button type="button" id="fAll" title="이 화의 본문에서 전부 바꾸기">모두</button>
+        </div>
+      </div>
       <div class="sheet">
         <div class="head">
           <input id="title" class="title" type="text" placeholder="제목 (파일 이름이 됩니다)" autocomplete="off" spellcheck="false" aria-label="제목">
           <input id="tags" class="tagline" type="text" placeholder="#태그  (띄어 써서 여러 개)" autocomplete="off" spellcheck="false" aria-label="태그">
         </div>
         <div class="tw-line" id="twLine" hidden aria-hidden="true"></div>
+        <div class="fhl" id="fHl" hidden aria-hidden="true"></div>
         <textarea id="body" class="body" spellcheck="false" aria-label="본문" placeholder="본문을 쓰세요."></textarea>
       </div>
     </div>
@@ -504,7 +533,8 @@ const el = {
   app: $('#app'), workSel: $('#workSel'), btnNewWork: $('#btnNewWork'), q: $('#q'), btnNewDoc: $('#btnNewDoc'),
   btnReload: $('#btnReload'), btnRenameWork: $('#btnRenameWork'), btnDelWork: $('#btnDelWork'), btnSelect: $('#btnSelect'),
   selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
-  btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
+  btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
+  fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
   title: $('#title'), tags: $('#tags'), body: $('#body'), meter: $('#meter'), cWith: $('#cWith'), cWithout: $('#cWithout'),
   cSelCell: $('#cSelCell'), cSel: $('#cSel'), status: $('#status'), btnSave: $('#btnSave'), toast: $('#toast'), jump: $('#jump'), btnTop: $('#btnTop'), btnBottom: $('#btnBottom')
@@ -987,7 +1017,7 @@ function twLayout() {
   layoutColumn();
   const b = el.body, on = cfg.typewriter && !el.paper.hidden;
   el.btnTW.classList.toggle('on', !!cfg.typewriter); el.btnTW.setAttribute('aria-pressed', String(!!cfg.typewriter));
-  if (!on) { b.style.paddingTop = ''; b.style.paddingBottom = ''; el.twLine.hidden = true; return; }
+  if (!on) { b.style.paddingTop = ''; b.style.paddingBottom = ''; el.twLine.hidden = true; if (FIND.open) hlBox(); return; }
   const H = b.clientHeight, lh = twLineHeight();
   if (!H) return;
   const pad = Math.max(18, Math.round(H / 2 - lh / 2));
@@ -998,6 +1028,7 @@ function twLayout() {
   el.twLine.style.left = (b.offsetLeft + b.clientLeft + pl) + 'px';
   el.twLine.style.width = Math.max(0, b.clientWidth - pl - pr) + 'px';
   el.twLine.hidden = false;
+  if (FIND.open) hlBox();
 }
 // 긴 원고에서도 빠르게: 줄(문단)마다 블록 하나로 나눈 복제본을 유지하고, 바뀐 줄만 고친다.
 function twStyle(m) {
@@ -1033,9 +1064,11 @@ function twSync(lines) {
   }
   TW.lines = lines;
 }
-function twCaretY() {
+function twCaretY() { return posY(el.body.selectionEnd); }
+// 본문의 pos 번째 글자가 놓인 줄의 높이(본문 칸 맨 위 기준, 스크롤 전)
+function posY(pos) {
   const b = el.body; twMirror();
-  const v = b.value, pos = b.selectionEnd;
+  const v = b.value;
   const lines = v.split('\n');
   twSync(lines);
   let li = 0; for (let i = v.indexOf('\n'); i !== -1 && i < pos; i = v.indexOf('\n', i + 1)) li++; // 커서가 있는 줄 번호
@@ -1150,6 +1183,115 @@ function unRedo() {
 // 값이 그대로면 커서 위치만 최신으로(되돌릴 때 커서가 엉뚱한 데 가지 않게)
 function unSyncCaret() { if (UN.last && el.body.value === UN.last.v) UN.last = unState(); }
 
+/* ---------- 화마다 보던 위치(커서·스크롤) 기억: 이 컴퓨터 브라우저에만 저장 ---------- */
+const POSKEY = 'writer.pos';
+const posKey = (w, f) => Core.nameKey(w) + '/' + Core.nameKey(f);
+function rememberPos() {
+  if (!S.cur || !S.work || el.paper.hidden) return;
+  clearTimeout(S.posTimer);
+  const all = loadJSON(POSKEY) || {}, b = el.body;
+  all[posKey(S.work.name, S.cur.fileName)] = { s: b.selectionStart, e: b.selectionEnd, top: Math.round(b.scrollTop), t: Date.now() };
+  const ks = Object.keys(all);
+  if (ks.length > 400) ks.sort((a, c) => all[a].t - all[c].t).slice(0, ks.length - 400).forEach(k => delete all[k]);
+  saveJSON(POSKEY, all);
+}
+function schedulePos() { clearTimeout(S.posTimer); S.posTimer = setTimeout(rememberPos, 400); }
+function restorePos(doc) {
+  const p = (loadJSON(POSKEY) || {})[posKey(S.work.name, doc.fileName)], b = el.body, n = b.value.length;
+  if (!p) { b.scrollTop = 0; b.setSelectionRange(0, 0); return; }
+  const a = Math.min(p.s | 0, n), z = Math.min(Math.max(p.e | 0, a), n);
+  b.setSelectionRange(a, z);
+  if (cfg.typewriter && a === z) twCenter(); else b.scrollTop = p.top | 0;
+}
+function movePos(work, from, to) {
+  const all = loadJSON(POSKEY) || {}, k = posKey(work, from);
+  if (all[k]) { all[posKey(work, to)] = all[k]; delete all[k]; saveJSON(POSKEY, all); }
+}
+
+/* ---------- 찾기·바꾸기 (지금 화의 본문만) ---------- */
+const FIND = { open: false, list: [], i: -1, timer: 0 };
+const reEsc = q => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function findRe() { const q = el.fq.value; return q ? new RegExp(reEsc(q), 'giu') : null; }
+// 찾은 곳 표시: 본문 칸 뒤에 같은 모양으로 겹친 판에 형광펜을 칠한다(본문 칸은 배경이 투명)
+function hlBox() {
+  const b = el.body, h = el.fHl, cs = getComputedStyle(b);
+  for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'wordSpacing', 'lineHeight', 'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom', 'wordBreak', 'overflowWrap', 'tabSize', 'fontKerning', 'fontFeatureSettings', 'textRendering']) h.style[k] = cs[k];
+  h.style.top = b.offsetTop + 'px'; h.style.left = b.offsetLeft + 'px';
+  h.style.width = b.clientWidth + 'px'; h.style.height = b.clientHeight + 'px';
+  h.scrollTop = b.scrollTop;
+}
+function hlDraw() {
+  if (!FIND.open) { el.fHl.hidden = true; return; }
+  const v = el.body.value; let html = '', at = 0;
+  FIND.list.forEach(([a, z], k) => { html += esc(v.slice(at, a)) + `<mark${k === FIND.i ? ' class="cur"' : ''}>${esc(v.slice(a, z))}</mark>`; at = z; });
+  el.fHl.innerHTML = html + esc(v.slice(at)) + '\n ';
+  el.fHl.hidden = false; hlBox();
+}
+// 목록을 다시 만들고, keep이면 커서 가까운 곳(커서 뒤 첫 번째)을 지금 것으로
+function findRun(keep) {
+  const re = findRe(), v = el.body.value; FIND.list = [];
+  if (re) { let m; while ((m = re.exec(v)) && FIND.list.length < 5000) { if (!m[0]) { re.lastIndex++; continue; } FIND.list.push([m.index, m.index + m[0].length]); } }
+  if (keep || FIND.i >= FIND.list.length) {
+    const c = el.body.selectionStart; FIND.i = FIND.list.findIndex(([a]) => a >= c);
+    if (FIND.i < 0) FIND.i = FIND.list.length ? 0 : -1;
+  }
+  findCount(); hlDraw();
+}
+function findCount() {
+  const n = FIND.list.length;
+  el.fCount.textContent = !el.fq.value ? '' : n ? `${FIND.i + 1} / ${fmt(n)}${n >= 5000 ? '+' : ''}` : '없음';
+  el.fCount.classList.toggle('none', !!el.fq.value && !n);
+  el.fRep.disabled = el.fAll.disabled = !n;
+}
+function findGo(step) {
+  const n = FIND.list.length; if (!n) return;
+  FIND.i = ((FIND.i < 0 ? 0 : FIND.i + step) % n + n) % n;
+  findShow();
+}
+function findShow() {
+  const m = FIND.list[FIND.i]; if (!m) { findCount(); hlDraw(); return; }
+  const b = el.body; b.setSelectionRange(m[0], m[1]);
+  const lh = twLineHeight(), y = posY(m[0]);
+  if (y < b.scrollTop + lh || y > b.scrollTop + b.clientHeight - lh * 2) b.scrollTop = Math.max(0, y - b.clientHeight / 2 + lh / 2);
+  findCount(); hlDraw();
+}
+// 프로그램으로 본문을 바꿀 때: 되돌리기 한 번에 통째로 돌아가게
+function bodyEdit(v, s, e) {
+  const b = el.body; unPush(unState()); UN.r = [];
+  UN.applying = true; b.value = v; b.setSelectionRange(s, e); UN.applying = false;
+  UN.last = unState(); UN.lastType = 'other'; UN.force = true;
+  onEdit(); updateSelection();
+}
+function findReplace() {
+  const m = FIND.list[FIND.i]; if (!m) return;
+  const v = el.body.value, r = el.fr.value;
+  bodyEdit(v.slice(0, m[0]) + r + v.slice(m[1]), m[0] + r.length, m[0] + r.length);
+  findRun(true); if (FIND.list.length) findShow();
+}
+function findReplaceAll() {
+  const re = findRe(); if (!re || !FIND.list.length) return;
+  const n = FIND.list.length, r = el.fr.value, b = el.body;
+  const c = b.selectionStart, before = FIND.list.filter(([a]) => a < c).length;
+  bodyEdit(b.value.replace(re, () => r), 0, 0);
+  const cc = Math.max(0, c + before * (r.length - el.fq.value.length)); b.setSelectionRange(cc, cc);
+  findRun(true); toast(`${fmt(n)}곳을 바꿨습니다 (되돌리기: Ctrl/Cmd+Z)`);
+}
+function openFind(withReplace) {
+  if (!S.cur || el.paper.hidden) return;
+  const b = el.body, sel = b.value.slice(b.selectionStart, b.selectionEnd);
+  if (sel && sel.length <= 100 && !sel.includes('\n')) el.fq.value = sel;
+  FIND.open = true; el.findBar.hidden = false; el.btnFind.classList.add('on');
+  if (withReplace) el.fRepRow.hidden = false;
+  el.fToggle.setAttribute('aria-pressed', String(!el.fRepRow.hidden));
+  findRun(true);
+  (withReplace && el.fq.value ? el.fr : el.fq).focus(); (withReplace && el.fq.value ? el.fr : el.fq).select();
+}
+function closeFind() {
+  if (!FIND.open) return;
+  FIND.open = false; el.findBar.hidden = true; el.fHl.hidden = true; el.btnFind.classList.remove('on');
+  el.body.focus({ preventScroll: true }); updateSelection();
+}
+
 const DKEY = 'writer.draft';
 function scheduleDraft() {
   clearTimeout(S.draftTimer);
@@ -1224,7 +1366,7 @@ async function saveNow(gesture) {
       const f = await (await work.handle.getFileHandle(fileName)).getFile();
       Object.assign(cur, Core.makeDoc(fileName, body, f.lastModified, 'utf-8'));
       S.savedTitle = title; S.savedBody = body; if (S.cur === cur) S.headRaw = Core.splitHead(body).head;
-      if (renaming) { if (pinSet().has(oldName)) { unpin([oldName]); const ps = pinSet(); ps.add(fileName); writePins(ps); } sortDocs(); }
+      if (renaming) { movePos(work.name, oldName, fileName); if (pinSet().has(oldName)) { unpin([oldName]); const ps = pinSet(); ps.add(fileName); writePins(ps); } sortDocs(); }
       hideBanner();
       if (leftover) showBanner('info', `이전 파일 “${leftover}”을 정리하지 못했습니다. 폴더에 남아 있으니 직접 확인하세요.`, []);
       return true;
@@ -1363,6 +1505,7 @@ async function checkExternal() {
 
 /* ---------- 화·작품 열기 ---------- */
 async function openDoc(doc) {
+  if (S.cur) rememberPos();
   if (S.cur && S.cur !== doc) {
     const ok = await flush();
     if (!ok && !confirm('저장하지 못했습니다. 그래도 다른 화로 이동할까요? 지금 내용은 임시 보관본에만 남습니다.')) return;
@@ -1388,8 +1531,9 @@ async function openDoc(doc) {
     if (confirm(`저장되지 않은 임시본이 있습니다 (마지막 입력 ${fmtTime(dr.t)}). 복구할까요?`)) { el.title.value = dr.title; setEditorText(dr.body); }
     else clearDraft();
   }
-  el.body.scrollTop = 0; el.body.setSelectionRange(0, 0); el.cSelCell.hidden = true;
-  twLayout(); unReset();
+  el.cSelCell.hidden = true;
+  twLayout(); restorePos(doc); unReset();
+  if (FIND.open) findRun(true);
   saveJSON('writer.last', { work: S.work.name, file: doc.fileName });
   onEdit(); if (!S.dirty) setStatus('saved', { time: fmtTime(doc.mtime || Date.now()) });
   updateLive(); renderList();
@@ -1398,6 +1542,7 @@ async function openDoc(doc) {
 async function selectWork(work, fileName) {
   const seq = S.loadSeq = (S.loadSeq || 0) + 1; // 이 선택의 번호표: 뒤에 다른 선택이 오면 이건 버린다
   S.tagPick = '';
+  if (S.cur) rememberPos();
   if (S.cur) {
     const ok = await flush();
     if (seq !== S.loadSeq) return;
@@ -1714,6 +1859,25 @@ function wire() {
   el.btnSelEnd.onclick = () => endSelect();
   el.btnRoot.onclick = changeRoot;
   el.btnTW.onclick = twToggle;
+  el.btnFind.onclick = () => FIND.open ? closeFind() : openFind(false);
+  el.fq.addEventListener('input', () => findRun(true));
+  el.fq.addEventListener('keydown', e => {
+    if (e.isComposing) return;
+    if (e.key === 'Enter') { e.preventDefault(); findGo(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
+  });
+  el.fr.addEventListener('keydown', e => {
+    if (e.isComposing) return;
+    if (e.key === 'Enter') { e.preventDefault(); findReplace(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
+  });
+  el.fPrev.onclick = () => findGo(-1); el.fNext.onclick = () => findGo(1); el.fClose.onclick = closeFind;
+  el.fToggle.onclick = () => { el.fRepRow.hidden = !el.fRepRow.hidden; el.fToggle.setAttribute('aria-pressed', String(!el.fRepRow.hidden)); (el.fRepRow.hidden ? el.fq : el.fr).focus(); };
+  el.fRep.onclick = findReplace; el.fAll.onclick = findReplaceAll;
+  [el.fPrev, el.fNext].forEach(bt => bt.addEventListener('mousedown', e => e.preventDefault()));
+  el.body.addEventListener('input', () => { if (!FIND.open) return; clearTimeout(FIND.timer); FIND.timer = setTimeout(() => findRun(false), 150); });
+  el.body.addEventListener('scroll', () => { if (FIND.open) el.fHl.scrollTop = el.body.scrollTop; }, { passive: true });
+  el.body.addEventListener('keydown', e => { if (e.key === 'Escape' && FIND.open) { e.preventDefault(); closeFind(); } });
   el.btnTags.onclick = () => { cfg.tagPanel = !cfg.tagPanel; if (!cfg.tagPanel) S.tagPick = ''; saveCfg(); renderList(); };
   el.tagPanel.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; S.tagPick = S.tagPick === b.dataset.pick ? '' : b.dataset.pick; renderList(); });
   el.btnTop.onclick = () => jumpTo(false);
@@ -1802,6 +1966,7 @@ function wire() {
   el.body.addEventListener('mousedown', () => { UN.force = true; });
   ['keyup', 'mouseup', 'select'].forEach(ev => el.body.addEventListener(ev, unSyncCaret));
   ['select', 'keyup', 'mouseup', 'focus'].forEach(ev => el.body.addEventListener(ev, updateSelection));
+  ['scroll', 'keyup', 'mouseup'].forEach(ev => el.body.addEventListener(ev, schedulePos, { passive: true }));
   el.title.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); el.body.focus(); } });
   el.title.addEventListener('blur', () => {
     const s = Core.sanitizeName(el.title.value);
@@ -1810,11 +1975,15 @@ function wire() {
   el.btnSave.onclick = () => saveNow(true);
   el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그 제외)' : '복사하지 못했습니다'); };
   document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) { e.preventDefault(); saveNow(true); } // 한글 입력 중이면 key가 'ㄴ'으로 올 수 있어 물리 키(KeyS)도 본다
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) { e.preventDefault(); saveNow(true); }
+    // 찾기 Ctrl/Cmd+F, 바꾸기 Ctrl+H(윈도우)·Cmd+Option+F(맥), 다음·이전 Ctrl/Cmd+G·Shift+G
+    else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF' && S.cur && !el.paper.hidden) { e.preventDefault(); openFind(e.altKey); }
+    else if (e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyH' && S.cur && !el.paper.hidden) { e.preventDefault(); openFind(true); }
+    else if ((e.ctrlKey || e.metaKey) && !e.altKey && e.code === 'KeyG' && FIND.open) { e.preventDefault(); findGo(e.shiftKey ? -1 : 1); } // 한글 입력 중이면 key가 'ㄴ'으로 올 수 있어 물리 키(KeyS)도 본다
   });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(false); else checkExternal(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { rememberPos(); saveNow(false); } else checkExternal(); });
   window.addEventListener('focus', () => { checkExternal(); });
-  window.addEventListener('pagehide', () => { saveNow(false); });
+  window.addEventListener('pagehide', () => { rememberPos(); saveNow(false); });
   window.addEventListener('blur', () => { if (S.dirty) saveNow(false); });
   window.addEventListener('beforeunload', e => { if (S.dirty || S.saving) { e.preventDefault(); e.returnValue = ''; } });
 
