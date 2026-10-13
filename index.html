@@ -72,10 +72,13 @@ input[type=text],input[type=search],input[type=number],select{border:1px solid v
 .gate-actions{display:flex;gap:10px;flex-wrap:wrap}
 
 /* app */
-.app{display:grid;grid-template-columns:310px minmax(0,1fr);height:100vh;height:100dvh}
+.app{--side-w:310px;display:grid;grid-template-columns:min(var(--side-w), 45vw) minmax(0,1fr);height:100vh;height:100dvh}
 .app.side-hidden{grid-template-columns:minmax(0,1fr)}
 .app.side-hidden .side{display:none}
-.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;position:relative;container-type:inline-size}
+.side-split{position:absolute;top:0;bottom:0;right:-4px;width:7px;cursor:col-resize;z-index:6}
+.side-split::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:1px;background:transparent}
+.side-split:hover::after,.side-split.drag::after{background:var(--accent);width:2px;left:2.5px}
 .side-head{display:flex;gap:8px;padding:12px 12px 8px}
 .side-head select{flex:1;font-weight:600}
 .search{padding:0 12px 8px;display:flex;gap:8px}
@@ -271,8 +274,10 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 .bkrow span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .sample{margin:16px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:8px;font-family:var(--ed-font);font-size:var(--ed-size);letter-spacing:var(--ed-ls);line-height:var(--ed-lh);word-break:keep-all}
 
+/* 목록을 좁게 끌었을 때 단추끼리 붙지 않게 */
+@container (max-width: 270px){.search,.side-actions,.side-works,.side-head{gap:6px}.search button{padding:4px 7px}.side-actions button{padding:6px 8px}.side-head button{padding:6px 9px}}
 @media (max-width:760px){
-  .app{grid-template-columns:230px minmax(0,1fr)}
+  .app{grid-template-columns:min(var(--side-w), 230px) minmax(0,1fr)}
   .paper{padding:16px 0 0}
   .sheet{--gut:14px}
   .search,.side-actions,.side-works{gap:6px}
@@ -299,6 +304,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 
 <div id="app" class="app" hidden>
   <aside class="side" id="side">
+    <div class="side-split" id="sideSplit" title="끌어서 목록 폭 조절 · 두 번 눌러 기본 폭"></div>
     <div class="side-head">
       <label class="sr" for="workSel">작품</label>
       <select id="workSel"></select>
@@ -629,7 +635,7 @@ const appErr = (code, message) => Object.assign(new Error(message), { appCode: c
 
 /* ---------- 설정 ---------- */
 const SKEY = 'writer.settings';
-const DEFAULTS = { refOpen: false, refW: 0.38, md: true, tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
+const DEFAULTS = { sideW: 310, refOpen: false, refW: 0.38, md: true, tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
 function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 const cfg = Object.assign({}, DEFAULTS, loadJSON(SKEY) || {});
@@ -686,6 +692,7 @@ function applyCfg() {
   st.setProperty('--ed-wch', String(cfg.wch));
   applyTheme();
   el.app.classList.toggle('side-hidden', !cfg.sideOpen);
+  el.app.style.setProperty('--side-w', (cfg.sideW || 310) + 'px');
   if (typeof twLayout === 'function' && el.btnTW) { twLayout(); twSchedule(); }
 }
 // 테마 6개: 밝은 셋, 어두운 셋. 시스템 설정은 따르지 않는다(처음 한 번만 참고).
@@ -2206,6 +2213,19 @@ function wire() {
     const up = () => { el.refSplit.classList.remove('drag'); el.refSplit.removeEventListener('pointermove', mv); el.refSplit.removeEventListener('pointerup', up); saveCfg(); };
     el.refSplit.addEventListener('pointermove', mv); el.refSplit.addEventListener('pointerup', up);
   });
+  // 편집 영역 크기가 어떤 이유로든 바뀌면(목록·참고 창 폭, 창 크기) 글 줄 정렬을 다시 맞춘다
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!el.paper.hidden) { twLayout(); updateJump(); } }).observe(el.paper);
+  // 왼쪽 목록 폭: 오른쪽 가장자리를 끌어서
+  const sideSplit = document.getElementById('sideSplit');
+  const sideRelayout = () => { el.app.style.setProperty('--side-w', cfg.sideW + 'px'); refLayout(); twLayout(); twSchedule(); updateJump(); };
+  sideSplit.addEventListener('pointerdown', e => {
+    e.preventDefault(); sideSplit.setPointerCapture(e.pointerId); sideSplit.classList.add('drag');
+    const left = el.app.getBoundingClientRect().left;
+    const mv = ev => { cfg.sideW = Math.round(Math.max(220, Math.min(560, ev.clientX - left))); sideRelayout(); };
+    const up = () => { sideSplit.classList.remove('drag'); sideSplit.removeEventListener('pointermove', mv); sideSplit.removeEventListener('pointerup', up); saveCfg(); };
+    sideSplit.addEventListener('pointermove', mv); sideSplit.addEventListener('pointerup', up);
+  });
+  sideSplit.addEventListener('dblclick', () => { cfg.sideW = 310; saveCfg(); sideRelayout(); });
   el.refSplit.addEventListener('dblclick', () => { cfg.refW = 0.38; saveCfg(); refLayout(); layoutAfterRef(); });
   el.btnSide.onclick = () => { cfg.sideOpen = !cfg.sideOpen; saveCfg(); el.app.classList.toggle('side-hidden', !cfg.sideOpen); refLayout(); twLayout(); twSchedule(); };
   el.title.addEventListener('input', onEdit);
