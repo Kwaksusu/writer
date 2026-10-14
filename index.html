@@ -212,9 +212,9 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .mdv b{font-weight:inherit;-webkit-text-stroke:.032em currentColor}
 .mdv s{text-decoration:line-through;text-decoration-thickness:.07em}
 .mdv .cb{position:relative;color:transparent}
-.mdv .cb::before{content:"";position:absolute;left:50%;top:50%;width:.8em;height:.8em;transform:translate(-50%,-50%);border:1.6px solid var(--muted);border-radius:.17em;box-sizing:border-box}
+.mdv .cb::before{content:"";position:absolute;left:.04em;top:50%;width:.8em;height:.8em;transform:translateY(-50%);border:1.6px solid var(--muted);border-radius:.17em;box-sizing:border-box}
 .mdv .cb.on::before{background:var(--accent);border-color:var(--accent)}
-.mdv .cb.on::after{content:"";position:absolute;left:50%;top:50%;width:.2em;height:.4em;border:solid var(--accent-ink);border-width:0 .1em .1em 0;transform:translate(-50%,-62%) rotate(45deg)}
+.mdv .cb.on::after{content:"";position:absolute;left:.44em;top:50%;width:.2em;height:.4em;border:solid var(--accent-ink);border-width:0 .1em .1em 0;transform:translate(-50%,-62%) rotate(45deg)}
 .mdv .done{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
 .body.md{color:transparent;-webkit-text-fill-color:transparent}
 .body.md::selection{color:transparent;-webkit-text-fill-color:transparent;background:color-mix(in srgb, var(--sel-bg) 60%, transparent)}
@@ -1427,6 +1427,13 @@ function mdWrap(mk) {
   if (sel.length > 2 * k && sel.startsWith(mk) && sel.endsWith(mk)) { bodyEdit(v.slice(0, s) + sel.slice(k, -k) + v.slice(e), s, e - 2 * k); return; }
   bodyEdit(v.slice(0, s) + mk + sel + mk + v.slice(e), s + k, e + k);
 }
+// pos가 있는 줄이 체크 줄이면 그 머리('- [ ] ')의 시작(들여쓰기 뒤)과 끝(글 시작)
+function mdPrefix(v, pos) {
+  const ls = v.lastIndexOf('\n', pos - 1) + 1; let le = v.indexOf('\n', ls); if (le < 0) le = v.length;
+  const c = Core.CB_RE.exec(v.slice(ls, le)); if (!c) return null;
+  const start = ls + c[1].length, sp = /^[ \t]?/.exec(c[5])[0].length;
+  return { ls, start, box: start + c[2].length + c[3].length, end: start + c[2].length + c[3].length + 3 + sp };
+}
 // Ctrl/Cmd+Enter: 지금 줄을 체크 줄로 만들거나, 체크 줄이면 체크/해제
 function mdToggleLine(pos, keepCaret) {
   const b = el.body, v = b.value, ls = v.lastIndexOf('\n', pos - 1) + 1;
@@ -2234,21 +2241,43 @@ function wire() {
   el.tags.addEventListener('blur', () => { const v = Core.normTags(el.tags.value); if (v !== el.tags.value.trim().replace(/[ \t]+/g, ' ')) { el.tags.value = v; onEdit(); } });
   el.body.addEventListener('input', e => { unTrack(e); onEdit(); updateSelection(); if (MD.on && /^insert(LineBreak|Paragraph)$/.test(e.inputType)) mdAfterBreak(); });
   el.body.addEventListener('scroll', () => { if (MD.on) el.mdl.scrollTop = el.body.scrollTop; }, { passive: true });
-  // 체크 칸 클릭으로 체크/해제
-  el.body.addEventListener('mousedown', e => { MD.down = [e.clientX, e.clientY]; });
-  el.body.addEventListener('click', e => {
-    if (!MD.on || e.shiftKey || e.button !== 0 || !MD.down || Math.hypot(e.clientX - MD.down[0], e.clientY - MD.down[1]) > 4) return;
+  // 체크 칸: 누르는 즉시 체크/해제(커서가 칸 안으로 들어가지 않게 기본 동작을 막는다)
+  el.body.addEventListener('mousedown', e => {
+    if (!MD.on || e.button !== 0 || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+    let hit = null;
+    for (const cb of el.mdl.querySelectorAll('.cb')) {
+      const r = cb.getBoundingClientRect();
+      if (e.clientX >= r.left - 4 && e.clientX <= r.right + 4 && e.clientY >= r.top - 4 && e.clientY <= r.bottom + 4) { hit = cb; break; }
+    }
+    if (!hit) return;
+    const line = [...el.mdl.children].indexOf(hit.parentElement); if (line < 0) return;
+    const b = el.body, v = b.value; let ls = 0;
+    for (let i = 0; i < line; i++) { ls = v.indexOf('\n', ls) + 1; if (!ls) return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    b.focus({ preventScroll: true });
+    const pf = mdPrefix(b.value, ls); if (!pf) return;
+    b.setSelectionRange(pf.end, pf.end);
+    mdToggleLine(pf.end, true);
+  }, true);
+  // 체크 줄 머리(- [ ] )는 한 덩어리: 커서가 그 안으로 들어가지 않는다
+  el.body.addEventListener('keydown', e => {
+    if (!MD.on || e.isComposing || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
     const b = el.body, p = b.selectionStart; if (p !== b.selectionEnd) return;
-    const v = b.value, ls = v.lastIndexOf('\n', p - 1) + 1; let le = v.indexOf('\n', p); if (le < 0) le = v.length;
-    const c = Core.CB_RE.exec(v.slice(ls, le)); if (!c) return;
-    const a = ls + c[1].length + c[2].length + c[3].length; // '[' 위치
-    if (p < a || p > a + 3) return;
-    // 실제로 네모 칸 위를 눌렀는지 화면 좌표로 한 번 더 확인
-    const ln = el.mdl.children[v.slice(0, ls).split('\n').length - 1]; const cb = ln && ln.querySelector('.cb');
-    if (!cb) return; const r = cb.getBoundingClientRect();
-    if (e.clientX < r.left - 3 || e.clientX > r.right + 3 || e.clientY < r.top - 3 || e.clientY > r.bottom + 3) return;
-    mdToggleLine(p, true);
+    const pf = mdPrefix(b.value, p); if (!pf) return;
+    if (e.key === 'ArrowLeft' && p === pf.end) { e.preventDefault(); b.setSelectionRange(pf.start, pf.start); UN.force = true; updateSelection(); }
+    else if (e.key === 'ArrowRight' && p === pf.start) { e.preventDefault(); b.setSelectionRange(pf.end, pf.end); UN.force = true; updateSelection(); }
+    else if (e.key === 'Backspace' && p === pf.end) { e.preventDefault(); const v = b.value; bodyEdit(v.slice(0, pf.start) + v.slice(pf.end), pf.start, pf.start); } // 체크 머리만 지우고 글은 남김
+    else if (e.key === 'Delete' && p === pf.start) { e.preventDefault(); const v = b.value; bodyEdit(v.slice(0, pf.start) + v.slice(pf.end), pf.start, pf.start); }
+    else if (e.key === 'Home' && p > pf.end) { e.preventDefault(); b.setSelectionRange(pf.end, pf.end); UN.force = true; updateSelection(); }
   });
+  // 위·아래 키, 클릭 등으로 머리 안쪽에 떨어지면 글 시작으로 옮긴다
+  const mdSnap = () => {
+    if (!MD.on) return;
+    const b = el.body, p = b.selectionStart; if (p !== b.selectionEnd) return;
+    const pf = mdPrefix(b.value, p);
+    if (pf && p > pf.start && p < pf.end) { b.setSelectionRange(pf.end, pf.end); unSyncCaret(); }
+  };
+  ['keyup', 'mouseup'].forEach(ev => el.body.addEventListener(ev, e => { if (!e.shiftKey && !TW.composing) mdSnap(); }));
   // 되돌리기 키: Ctrl/Cmd+Z, 다시 실행: Ctrl/Cmd+Shift+Z, Ctrl+Y
   el.body.addEventListener('keydown', e => {
     if (e.isComposing || e.altKey) return;
