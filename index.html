@@ -175,7 +175,7 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-spacing:var(--ed-ls);border:0;background:transparent;padding:4px 0 6px;outline:0;width:100%;border-radius:0}
 .head{border-bottom:1px solid var(--line);padding-bottom:6px}
 .head:focus-within{border-bottom-color:var(--accent)}
-.body{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;font-family:var(--ed-font);font-size:1em;letter-spacing:var(--ed-ls);line-height:var(--ed-lh);padding:18px max(var(--gut), calc((100% - var(--ed-wch) * var(--ed-size)) / 2)) 48px;caret-color:var(--accent);word-break:keep-all;overflow-wrap:anywhere}
+.body{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;font-family:var(--ed-font);font-size:1em;letter-spacing:var(--ed-ls);line-height:calc(var(--ed-lh) * 1em);padding:18px max(var(--gut), calc((100% - var(--ed-wch) * var(--ed-size)) / 2)) 48px;caret-color:var(--accent);word-break:keep-all;overflow-wrap:anywhere}
 .body::selection,.title::selection,.sample::selection{background:var(--sel-bg);color:var(--sel-ink)}
 .body::-moz-selection,.title::-moz-selection{background:var(--sel-bg);color:var(--sel-ink)}
 .item::selection{background:var(--sel-bg);color:var(--sel-ink)}
