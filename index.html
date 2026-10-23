@@ -328,6 +328,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     </div>
     <div class="selbar" id="selbar" hidden>
       <button id="btnSelAll">전체 선택</button>
+      <button id="btnMerge" disabled title="고른 화를 순서대로 한 파일로 묶어 작품 폴더 안 '합본' 폴더에 저장합니다">합본 만들기</button>
       <button id="btnSelDel" class="danger" disabled>선택 삭제</button>
       <button id="btnSelEnd">끝내기</button>
     </div>
@@ -601,7 +602,7 @@ const el = {
   gate: $('#gate'), gateMsg: $('#gateMsg'), btnResume: $('#btnResume'), btnPick: $('#btnPick'),
   app: $('#app'), workSel: $('#workSel'), btnNewWork: $('#btnNewWork'), q: $('#q'), btnNewDoc: $('#btnNewDoc'),
   btnReload: $('#btnReload'), btnRenameWork: $('#btnRenameWork'), btnDelWork: $('#btnDelWork'), btnSelect: $('#btnSelect'),
-  selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
+  selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnMerge: $('#btnMerge'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
   btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
   fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), mdl: $('#mdl'), btnRef: $('#btnRef'), refPane: $('#refPane'), refSplit: $('#refSplit'), refSel: $('#refSel'), refN: $('#refN'), refClose: $('#refClose'), refScroll: $('#refScroll'), refBody: $('#refBody'), workArea: $('#workArea'), ctxMenu: $('#ctxMenu'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
@@ -1012,6 +1013,7 @@ function renderList() {
   el.list.innerHTML = html; el.list.scrollTop = keep;
   el.list.classList.toggle('selmode', S.selMode);
   el.btnSelDel.disabled = !S.sel.size; el.btnSelDel.textContent = `선택 삭제${S.sel.size ? ` (${S.sel.size})` : ''}`;
+  el.btnMerge.disabled = !S.sel.size; el.btnMerge.textContent = `합본 만들기${S.sel.size ? ` (${S.sel.size})` : ''}`;
   renderTotals(S.docs.length, w, n, shown);
   updatePinBtn(); renderTagPanel();
   if (refShown()) refFillSel();
@@ -1826,14 +1828,14 @@ async function refreshAll() {
 
 /* ---------- 선택(여러 화 정리) ---------- */
 function endSelect(silent) {
-  S.selMode = false; S.sel.clear();
+  S.selMode = false; S.sel.clear(); S.selAnchor = null;
   el.selbar.hidden = true; el.btnSelect.classList.remove('on');
   if (!silent) renderList();
 }
 function toggleSelect() {
   if (S.selMode) { endSelect(); return; }
   if (!S.work) return;
-  S.selMode = true; S.sel.clear(); el.selbar.hidden = false; el.btnSelect.classList.add('on'); renderList();
+  S.selMode = true; S.sel.clear(); S.selAnchor = null; el.selbar.hidden = false; el.btnSelect.classList.add('on'); renderList();
 }
 function selectAllShown() {
   const shown = S.docs.filter(d => Core.matchDoc(d, S.filter));
@@ -1866,6 +1868,40 @@ async function deleteSelected() {
   renderList();
   if (bad.length) showBanner('error', `${bad.length}개는 옮기지 못했습니다: ${bad.slice(0, 3).join(', ')}${bad.length > 3 ? ' 외' : ''}. 폴더가 지워졌거나 다른 프로그램이 쓰고 있을 수 있습니다.`, []);
   else toast(`${done.length}개 화를 ${DUMMY}로 옮겼습니다`);
+}
+
+/* ---------- 합본 만들기: 고른 화를 '### 제목' + 본문으로 이어 붙여 작품/합본/ 에 저장 ---------- */
+const MERGE_DIR = '합본';
+async function mergeSelected() {
+  const docs = S.docs.filter(d => S.sel.has(d.fileName)); // 이름순(001, 002 …)
+  if (!docs.length || !S.work) return;
+  const span = docs.length > 1 ? `${docs[0].title} ~ ${docs[docs.length - 1].title}` : docs[0].title;
+  const v = await askText({ title: '합본 만들기', label: '합본 파일 이름', value: '합본', ok: '만들기', message: `${docs.length}개 화: ${span}`, hint: `작품 폴더 안 '${MERGE_DIR}' 폴더에 저장합니다. 같은 이름이 있으면 (1), (2)를 붙여 새로 만듭니다.` });
+  if (v == null) return;
+  const base = Core.sanitizeName(String(v).replace(/\.txt$/i, ''));
+  if (!base) { toast('이름을 입력하세요'); return; }
+  if (S.cur && !(await flush())) return; // 지금 쓰던 화도 저장된 최신 내용으로 묶이게
+  const work = S.work, parts = [], missing = [];
+  try {
+    await ensureWrite(true);
+    for (const d of docs) {
+      const disk = await readText(work.handle, d.fileName);
+      if (!disk) { missing.push(d.title); continue; }
+      const body = Core.splitHead(disk.text).body.replace(/\s+$/, '');
+      parts.push(`### ${d.title}\n${body}`);
+    }
+    if (!parts.length) { showBanner('error', '고른 화의 파일을 찾을 수 없습니다. 새로고침으로 목록을 확인하세요.', []); return; }
+    const dir = await work.handle.getDirectoryHandle(MERGE_DIR, { create: true });
+    const have = new Set();
+    for await (const [n] of dir.entries()) have.add(Core.nameKey(n));
+    let fileName = base + '.txt', k = 1;
+    while (have.has(Core.nameKey(fileName))) fileName = `${base} (${k++}).txt`;
+    await writeFile(dir, fileName, parts.join('\n\n'));
+    endSelect();
+    const renamed = fileName !== base + '.txt';
+    const msg = `${parts.length}개 화를 “${MERGE_DIR}/${fileName}”로 묶었습니다.` + (renamed ? ` (“${base}.txt”가 이미 있어서 이름 뒤에 번호를 붙였습니다)` : '') + (missing.length ? ` 찾지 못해 뺀 화: ${missing.join(', ')}` : '');
+    if (renamed || missing.length) showBanner('info', msg, []); else toast(msg);
+  } catch (e) { showError(e, '합본 만들기'); }
 }
 
 /* ---------- 작품 삭제 / 제목 변경 ---------- */
@@ -2100,6 +2136,7 @@ function wire() {
   el.btnSelect.onclick = toggleSelect;
   el.btnSelAll.onclick = selectAllShown;
   el.btnSelDel.onclick = deleteSelected;
+  el.btnMerge.onclick = mergeSelected;
   el.btnSelEnd.onclick = () => endSelect();
   el.btnRoot.onclick = changeRoot;
   el.btnTW.onclick = twToggle;
@@ -2184,11 +2221,21 @@ function wire() {
     if (pn) { e.stopPropagation(); const dd = S.docs[parseInt(pn.closest('.item').dataset.i, 10)]; if (dd) togglePin(dd.fileName); return; }
     const b = e.target.closest('.item'); if (!b) return;
     const d = S.docs[parseInt(b.dataset.i, 10)]; if (!d) return;
-    if (S.selMode) { if (S.sel.has(d.fileName)) S.sel.delete(d.fileName); else S.sel.add(d.fileName); renderList(); return; }
+    if (S.selMode) {
+      // Shift+클릭: 마지막으로 누른 화부터 지금 화까지(보이는 순서대로) 모두 고름
+      if (e.shiftKey && S.selAnchor) {
+        const order = [...el.list.querySelectorAll('.item')].map(x => S.docs[+x.dataset.i]).filter(Boolean);
+        const a = order.findIndex(x => x.fileName === S.selAnchor), z = order.indexOf(d);
+        if (a >= 0 && z >= 0) { for (let k = Math.min(a, z); k <= Math.max(a, z); k++) S.sel.add(order[k].fileName); renderList(); return; }
+      }
+      if (S.sel.has(d.fileName)) S.sel.delete(d.fileName); else S.sel.add(d.fileName);
+      S.selAnchor = d.fileName; renderList(); return;
+    }
     if (e.altKey) { refOpen(S.work, d.fileName); return; }
     openDoc(d);
   };
   // 목록의 화에서만 우클릭 메뉴를 바꾼다(본문 등 다른 곳은 크롬 메뉴 그대로)
+  el.list.addEventListener('mousedown', e => { if (S.selMode && e.shiftKey) e.preventDefault(); }); // Shift+클릭 때 글자가 드래그 선택되지 않게
   el.list.addEventListener('contextmenu', e => {
     const b = e.target.closest('.item'); if (!b || S.selMode) return;
     const d = S.docs[parseInt(b.dataset.i, 10)]; if (!d) return;
