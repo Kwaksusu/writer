@@ -4,7 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>집필기</title>
-<meta name="theme-color" content="#2C6B65">
+<meta name="theme-color" content="#EDF1F0">
+<script>
+// 앱 창 맨 위 막대(제목·_□X) 색을 테마에 맞춘다. 화면이 그려지기 전에 먼저 정해서 초록색이 번쩍이지 않게.
+(function () {
+  var BAR = { mint: '#EDF1F0', paper: '#EFE8DA', white: '#F3F4F6', deep: '#111517', ink: '#0A0A0A', night: '#1A1F2B' };
+  var t = ''; try { t = (JSON.parse(localStorage.getItem('writer.settings') || '{}') || {}).theme || ''; } catch (e) {}
+  if (t === 'light') t = 'mint'; else if (t === 'dark') t = 'deep';
+  if (!BAR[t]) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'deep' : 'mint';
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', BAR[t]);
+})();
+</script>
 <script>
 // 웹 주소(https)로 열었을 때만: 앱 설치 정보 + 오프라인 캐시. 로컬 파일(file://)로 열면 아무것도 안 함.
 if (/^https?:$/.test(location.protocol)) {
@@ -708,6 +718,9 @@ function applyTheme() {
   cfg.theme = t;
   const th = THEMES.find(x => x[0] === t);
   document.documentElement.dataset.theme = t; document.documentElement.dataset.tone = th[2];
+  // 앱 창 맨 위 막대도 같은 색(위쪽 도구 막대 배경 --bg와 이어지게)
+  const bar = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const meta = document.querySelector('meta[name="theme-color"]'); if (meta && bar) meta.setAttribute('content', bar);
   const box = document.getElementById('themeSel');
   if (box) box.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.theme === t)));
 }
