@@ -997,6 +997,20 @@ function renderWorks() {
   el.btnRenameWork.disabled = !S.work; el.btnDelWork.disabled = !S.work;
   el.btnRoot.textContent = S.root ? `작업 폴더: ${S.root.name}` : '작업 폴더';
 }
+// 목록에 보이는 순서대로 S.docs 인덱스를 돌려준다(고정 우선 · 정렬 방향 · 검색/태그 필터 반영)
+function visibleOrder() {
+  if (!S.work || !S.docs.length) return [];
+  const pins = pinSet();
+  // S.docs는 항상 오름차순(새 화 번호 제안용). 보이는 순서만 바꾼다.
+  let order = S.docs.map((_, i) => i);
+  if (cfg.sortDesc) order.reverse();
+  order = order.filter(i => pins.has(S.docs[i].fileName)).concat(order.filter(i => !pins.has(S.docs[i].fileName)));
+  return order.filter(i => {
+    const d = S.docs[i];
+    return Core.matchDoc(d, S.filter) && (!S.tagPick || d.tags.some(t => t.toLowerCase() === S.tagPick));
+  });
+}
+const visibleDocs = () => visibleOrder().map(i => S.docs[i]);
 function renderList() {
   const keep = el.list.scrollTop;
   updateSortBtn();
@@ -1004,15 +1018,10 @@ function renderList() {
   let w = 0, n = 0;
   for (const d of S.docs) { w += d.counts.withSpaces; n += d.counts.noSpaces; }
   const pins = pinSet();
-  // S.docs는 항상 오름차순(새 화 번호 제안용). 보이는 순서만 바꾼다.
-  let order = S.docs.map((_, i) => i);
-  if (cfg.sortDesc) order.reverse();
-  order = order.filter(i => pins.has(S.docs[i].fileName)).concat(order.filter(i => !pins.has(S.docs[i].fileName)));
+  const order = visibleOrder();
   let html = '', shown = 0, sepDone = false, pinnedShown = 0;
   for (const i of order) {
     const d = S.docs[i];
-    if (!Core.matchDoc(d, S.filter)) continue;
-    if (S.tagPick && !d.tags.some(t => t.toLowerCase() === S.tagPick)) continue;
     shown++;
     const isPin = pins.has(d.fileName);
     if (isPin) pinnedShown++;
@@ -1758,20 +1767,25 @@ async function checkExternal() {
 
 /* ---------- 화·작품 열기 ---------- */
 async function openDoc(doc) {
+  const seq = S.openSeq = (S.openSeq || 0) + 1;
+  const work = S.work;
   if (S.cur) rememberPos();
   if (S.cur && S.cur !== doc) {
     const ok = await flush();
-    if (!ok && !confirm('저장하지 못했습니다. 그래도 다른 화로 이동할까요? 지금 내용은 임시 보관본에만 남습니다.')) return;
+    if (seq !== S.openSeq || S.work !== work) return false;
+    if (!ok && !confirm('저장하지 못했습니다. 그래도 다른 화로 이동할까요? 지금 내용은 임시 보관본에만 남습니다.')) return false;
+    if (seq !== S.openSeq || S.work !== work) return false;
   }
   clearTimeout(S.timer);
   // 목록에 읽어 둔 내용이 낡았을 수 있으니 열 때마다 파일을 새로 읽는다.
   let missing = false;
   try {
-    const disk = await readText(S.work.handle, doc.fileName);
+    const disk = await readText(work.handle, doc.fileName);
+    if (seq !== S.openSeq || S.work !== work) return false;
     if (!disk) missing = true;
     else if (disk.text !== doc.text || disk.enc !== doc.enc) Object.assign(doc, Core.makeDoc(doc.fileName, disk.text, disk.mtime, disk.enc));
     else doc.mtime = disk.mtime;
-  } catch (e) {}
+  } catch (e) { if (seq !== S.openSeq || S.work !== work) return false; }
   S.conflict = null; S.histDone.clear(); // 열 때마다 첫 덮어쓰기 전 판을 한 부 남긴다
   S.cur = doc; S.savedTitle = doc.title; S.savedBody = doc.text; S.dirty = false; S.firstDirty = 0;
   el.title.value = doc.title; setEditorText(doc.text);
@@ -1792,9 +1806,65 @@ async function openDoc(doc) {
   onEdit(); if (!S.dirty) setStatus('saved', { time: fmtTime(doc.mtime || Date.now()) });
   updateLive(); renderList();
   const on = el.list.querySelector('.item.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+  return true;
+}
+// 작품 안의 화를 키보드로 위·아래 탐색(윈도우 Ctrl+Alt+↑/↓, 맥 Ctrl+Cmd+↑/↓)
+const isMacOS = () => /mac/i.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '');
+function isDocNavKey(e) {
+  if (e.shiftKey) return 0;
+  const dir = (e.code === 'ArrowUp' || e.key === 'ArrowUp') ? -1 : (e.code === 'ArrowDown' || e.key === 'ArrowDown') ? 1 : 0;
+  if (!dir) return 0;
+  return (isMacOS() ? (e.ctrlKey && e.metaKey && !e.altKey) : (e.ctrlKey && e.altKey && !e.metaKey)) ? dir : 0;
+}
+async function stepDoc(dir) {
+  if (!S.work || S.selMode || S.backingUp || S.conflictOpen) return false;
+  const list = visibleDocs();
+  if (!list.length) return false;
+  const base = S.navTarget || S.cur;
+  let nextIdx;
+  if (!base) nextIdx = dir > 0 ? 0 : list.length - 1;
+  else {
+    const idx = list.indexOf(base);
+    nextIdx = idx < 0 ? (dir > 0 ? 0 : list.length - 1) : idx + dir;
+  }
+  if (nextIdx < 0) { toast('목록의 처음입니다'); return false; }
+  if (nextIdx >= list.length) { toast('목록의 끝입니다'); return false; }
+  const want = list[nextIdx];
+  if (want === S.cur && !S.navRunning) return false;
+  if (!el.ctxMenu.hidden) ctxHide();
+  S.navTarget = want;
+  if (S.navRunning) return true;
+  S.navRunning = true;
+  const keepEl = document.activeElement;
+  const keepInInput = keepEl === el.q || keepEl === el.fq || keepEl === el.fr;
+  // 제목·태그 정리(blur)와 한글 조합 확정을 저장 전에 마친다
+  if (keepEl === el.title || keepEl === el.tags || (keepEl === el.body && TW.composing)) keepEl.blur();
+  try {
+    while (S.navTarget && S.navTarget !== S.cur) {
+      const target = S.navTarget;
+      if (!S.docs.includes(target)) { S.navTarget = null; return false; }
+      const ok = await openDoc(target);
+      if (!ok) { S.navTarget = null; return false; }
+      if (S.navTarget === target) break;
+    }
+  } finally {
+    S.navRunning = false;
+    S.navTarget = null;
+  }
+  if (S.cur && !el.paper.hidden) {
+    if (keepInInput && keepEl && !keepEl.hidden && keepEl.isConnected) {
+      if (document.activeElement !== keepEl) keepEl.focus({ preventScroll: true });
+    } else if (document.activeElement !== el.body) {
+      const st = el.body.scrollTop;
+      el.body.focus({ preventScroll: true });
+      if (!cfg.typewriter) el.body.scrollTop = st;
+    }
+  }
+  return true;
 }
 async function selectWork(work, fileName) {
   const seq = S.loadSeq = (S.loadSeq || 0) + 1; // 이 선택의 번호표: 뒤에 다른 선택이 오면 이건 버린다
+  S.openSeq = (S.openSeq || 0) + 1; S.navTarget = null;
   S.tagPick = '';
   if (S.cur) rememberPos();
   if (S.cur) {
@@ -2366,6 +2436,15 @@ function wire() {
   });
   el.btnSave.onclick = () => saveNow(true);
   el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그·마크다운 기호 제외)' : '복사하지 못했습니다'); };
+  // 작품 안 화 탐색: 윈도우 Ctrl+Alt+↑/↓, 맥 Ctrl+Cmd+↑/↓ (다른 단축키·입력 칸과 충돌하지 않게 캡처 단계에서 처리)
+  document.addEventListener('keydown', e => {
+    const dir = isDocNavKey(e);
+    if (!dir) return;
+    if (el.app.hidden || !S.work || S.selMode || S.backingUp || S.conflictOpen || document.querySelector('dialog[open]')) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.repeat && S.navRunning) return;
+    stepDoc(dir);
+  }, true);
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) { e.preventDefault(); saveNow(true); }
     // 찾기 Ctrl/Cmd+F, 바꾸기 Ctrl+H(윈도우)·Cmd+Option+F(맥), 다음·이전 Ctrl/Cmd+G·Shift+G
@@ -2420,7 +2499,7 @@ async function boot() {
   }
   showGate('pick');
 }
-window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
+window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
 boot();
 })();
 </script>
