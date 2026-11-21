@@ -748,27 +748,62 @@ function updateSortBtn() { el.btnSort.textContent = cfg.sortDesc ? '내림차순
 function num(v, d, lo, hi) { const n = parseFloat(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; }
 
 /* ---------- 저장 위치(IndexedDB에 폴더 핸들 보관) ---------- */
+const IDB_NAME = 'writer-store';
+let idbConn = null;
+function withTimeout(p, ms, msg) {
+  let t;
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise((_, rej) => { t = setTimeout(() => rej(appErr('timeout', msg || '응답 시간이 초과되었습니다.')), ms); })
+  ]).finally(() => clearTimeout(t));
+}
 function idbOpen() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open('writer-store', 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('kv');
-    r.onsuccess = () => res(r.result);
+  if (idbConn) return idbConn;
+  const p = withTimeout(new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); };
+    r.onsuccess = () => {
+      const db = r.result;
+      db.onversionchange = () => { db.close(); if (idbConn === p) idbConn = null; };
+      db.onclose = () => { if (idbConn === p) idbConn = null; };
+      res(db);
+    };
     r.onerror = () => rej(r.error);
-  });
+    r.onblocked = () => rej(appErr('timeout', '저장소가 다른 창에 잠겨 있습니다.'));
+  }), 3000, '저장소 열기 시간이 초과되었습니다.').catch(e => { if (idbConn === p) idbConn = null; throw e; });
+  idbConn = p;
+  return p;
+}
+function kvReset() {
+  KV_MEM.clear();
+  const prev = idbConn; idbConn = null;
+  if (prev) prev.then(db => { try { db.close(); } catch (e) {} }).catch(() => {});
+  try { indexedDB.deleteDatabase(IDB_NAME); } catch (e) {}
 }
 const KV_MEM = new Map(); // IndexedDB를 못 쓰는 환경에서도 이번 실행 동안은 기억
-async function kvGet(k) {
+async function kvGet(k, strict) {
   if (KV_MEM.has(k)) return KV_MEM.get(k);
   try {
     const db = await idbOpen();
-    return await new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
-  } catch (e) { return undefined; }
+    return await withTimeout(new Promise((res, rej) => {
+      const tx = db.transaction('kv'), q = tx.objectStore('kv').get(k);
+      q.onsuccess = () => res(q.result);
+      q.onerror = () => rej(q.error);
+      tx.onabort = () => rej(tx.error || appErr('idb', '읽기가 중단되었습니다.'));
+    }), 3000, '저장소 읽기 시간이 초과되었습니다.');
+  } catch (e) { if (strict) throw e; return undefined; }
 }
 async function kvSet(k, v) {
   KV_MEM.set(k, v);
   try {
     const db = await idbOpen();
-    await new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    await withTimeout(new Promise((res, rej) => {
+      const tx = db.transaction('kv', 'readwrite');
+      tx.objectStore('kv').put(v, k);
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error || appErr('idb', '쓰기가 중단되었습니다.'));
+    }), 3000, '저장소 쓰기 시간이 초과되었습니다.');
     return true;
   } catch (e) { return false; }
 }
@@ -2166,6 +2201,7 @@ function showGate(mode, handle, msg) {
   }
 }
 async function pickFolder() {
+  S.bootCancelled = true;
   try {
     const h = await window.showDirectoryPicker({ id: 'writer-root', mode: 'readwrite' });
     await kvSet('root', h);
@@ -2186,13 +2222,16 @@ async function changeRoot() {
   if (await enterRoot(h, true, prev)) await kvSet('root', h);
 }
 async function enterRoot(h, fresh, prev) {
+  const rseq = S.rootSeq = (S.rootSeq || 0) + 1;
   const before = S.root; S.root = h;
-  try { await listWorks(); }
+  try { await withTimeout(listWorks(), 8000, '폴더 응답이 너무 느립니다. 드라이브 동기화나 폴더 상태를 확인해 주세요.'); }
   catch (e) {
+    if (rseq !== S.rootSeq) return false;
     S.root = before;
     if (prev) { showError(e, '작업 폴더 열기'); return false; }
     showGate('pick', null, `폴더를 읽지 못했습니다: ${describeError(e).msg}`); return false;
   }
+  if (rseq !== S.rootSeq) return false;
   el.gate.hidden = true; el.app.hidden = false;
   applyCfg();
   if (fresh) { S.cur = null; S.work = null; S.dirty = false; clearTimeout(S.timer); clearDraft(); hideBanner(); }
@@ -2490,14 +2529,44 @@ async function copyText(text) {
 async function boot() {
   buildFontOptions(); applyCfg(); wire(); mdApply(); updateBackupBtn();
   if (!window.showDirectoryPicker) { showGate('unsupported'); return; }
-  const h = await kvGet('root');
-  if (h) {
-    let perm = 'prompt';
-    try { perm = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
-    if (perm === 'granted') { await enterRoot(h, false); return; }
-    showGate('resume', h); return;
+  // 시작이 길어져도 빈 화면에 갇히지 않게: 0.4초 안에 안 열리면 안내와 '작업 폴더 선택' 버튼을 먼저 보여준다
+  const loadTimer = setTimeout(() => {
+    if (!S.bootCancelled && el.app.hidden && el.gate.hidden) showGate('pick', null, '이전 작업 폴더를 확인하는 중입니다… 오래 걸리면 작업 폴더를 다시 선택하세요.');
+  }, 400);
+  try {
+    let h;
+    try { h = await kvGet('root', true); }
+    catch (e) {
+      if (S.bootCancelled) return;
+      if (e && e.appCode === 'timeout') {
+        kvReset();
+        showGate('pick', null, '이전 폴더 연결 정보가 응답하지 않아 초기화했습니다. 작업 폴더를 다시 선택해 주세요.');
+        return;
+      }
+      h = undefined;
+    }
+    if (S.bootCancelled) return;
+    if (h) {
+      let perm = 'prompt';
+      try { perm = await withTimeout(h.queryPermission({ mode: 'readwrite' }), 4000, '폴더 권한 확인 시간이 초과되었습니다.'); }
+      catch (e) {
+        if (S.bootCancelled) return;
+        if (e && e.appCode === 'timeout') {
+          kvReset();
+          showGate('pick', null, '이전 폴더 연결이 응답하지 않아 초기화했습니다. 작업 폴더를 다시 선택해 주세요.');
+          return;
+        }
+      }
+      if (S.bootCancelled) return;
+      if (perm === 'granted') { await enterRoot(h, false); return; }
+      showGate('resume', h); return;
+    }
+    showGate('pick');
+  } catch (e) {
+    if (!S.bootCancelled) showGate('pick', null, `시작 중 문제가 생겼습니다: ${describeError(e).msg}`);
+  } finally {
+    clearTimeout(loadTimer);
   }
-  showGate('pick');
 }
 window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
 boot();
