@@ -34,8 +34,10 @@ if (/^https?:$/.test(location.protocol)) {
   --sel-bg:#B4DDD6; --sel-ink:#0C1A19; --on-bg:#CFE5E1;
   --ed-font:"Noto Serif KR","Nanum Myeongjo","바탕","Batang","AppleMyungjo",serif;
   --ed-size:18px; --ed-ls:0em; --ed-lh:1.9; --ed-wch:40; --ed-top:26px;
+  --ed-peak:#000000; --ed-stroke:0em; --ed-mix:0%; --ed-ink:color-mix(in srgb, var(--ink), var(--ed-peak) var(--ed-mix));
   color-scheme:light;
 }
+:root[data-tone="dark"]{--ed-peak:#FFFFFF}
 :root[data-theme="paper"]{
   --bg:#EFE8DA; --side:#E8DFCE; --paper:#F8F3E8; --ink:#2E2720; --muted:#75664F; --line:#DACDB6; --accent:#8A5A2B; --accent-ink:#FFFFFF; --hover:#E1D5BF; --warn:#8A5700; --warn-bg:#F6EACB; --err:#A5201A; --err-bg:#F7E1DC; --sel-bg:#E3CBA0; --sel-ink:#241A10; --on-bg:#E8D8BB;
   color-scheme:light;
@@ -182,10 +184,11 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 .sheet > .head{width:var(--colw);margin:0 auto;flex:none}
 .tw-line{position:absolute;left:0;height:0;border-top:1px solid var(--line);pointer-events:none;z-index:0}
 .sheet .body{position:relative;z-index:1}
-input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-spacing:var(--ed-ls);border:0;background:transparent;padding:4px 0 6px;outline:0;width:100%;border-radius:0}
+input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-spacing:var(--ed-ls);color:var(--ed-ink);border:0;background:transparent;padding:4px 0 6px;outline:0;width:100%;border-radius:0}
 .head{border-bottom:1px solid var(--line);padding-bottom:6px}
 .head:focus-within{border-bottom-color:var(--accent)}
-.body{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;font-family:var(--ed-font);font-size:1em;letter-spacing:var(--ed-ls);line-height:calc(var(--ed-lh) * 1em);padding:18px max(var(--gut), calc((100% - var(--ed-wch) * var(--ed-size)) / 2)) 48px;caret-color:var(--accent);word-break:keep-all;overflow-wrap:anywhere}
+.body{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;color:var(--ed-ink);-webkit-text-stroke:var(--ed-stroke) currentColor;font-family:var(--ed-font);font-size:1em;letter-spacing:var(--ed-ls);line-height:calc(var(--ed-lh) * 1em);padding:18px max(var(--gut), calc((100% - var(--ed-wch) * var(--ed-size)) / 2)) 48px;caret-color:var(--accent);word-break:keep-all;overflow-wrap:anywhere}
+.body::placeholder{-webkit-text-stroke:0 transparent}
 .body::selection,.title::selection,.sample::selection{background:var(--sel-bg);color:var(--sel-ink)}
 .body::-moz-selection,.title::-moz-selection{background:var(--sel-bg);color:var(--sel-ink)}
 .item::selection{background:var(--sel-bg);color:var(--sel-ink)}
@@ -239,19 +242,19 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .fcount{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:52px;text-align:right;padding-right:2px;white-space:nowrap}
 .fcount.none{color:var(--err)}
 #fToggle[aria-pressed="true"]{background:var(--hover)}
-.mdl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:var(--ink);pointer-events:none;box-sizing:border-box;border:0;margin:0}
-.mdv .mk{color:var(--muted);opacity:.6}
+.mdl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:var(--ed-ink);-webkit-text-stroke:var(--ed-stroke) currentColor;pointer-events:none;box-sizing:border-box;border:0;margin:0}
+.mdv .mk{color:var(--muted);opacity:.6;-webkit-text-stroke:0 transparent}
 .mdv .cbdash{opacity:0}
-.mdv b{font-weight:inherit;-webkit-text-stroke:.032em currentColor}
+.mdv b{font-weight:inherit;-webkit-text-stroke:calc(var(--ed-stroke,0em) + .03em) currentColor}
 .mdv s{text-decoration:line-through;text-decoration-thickness:.07em}
-.mdv .cb{position:relative;color:transparent}
+.mdv .cb{position:relative;color:transparent;-webkit-text-stroke:0 transparent}
 .mdv .cb::before{content:"";position:absolute;left:.04em;top:50%;width:.8em;height:.8em;transform:translateY(-50%);border:1.6px solid var(--muted);border-radius:.17em;box-sizing:border-box}
 .mdv .cb.on::before{background:var(--accent);border-color:var(--accent)}
 .mdv .cb.on::after{content:"";position:absolute;left:.44em;top:50%;width:.2em;height:.4em;border:solid var(--accent-ink);border-width:0 .1em .1em 0;transform:translate(-50%,-62%) rotate(45deg)}
-.mdv .done{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
-.body.md{color:transparent;-webkit-text-fill-color:transparent}
+.mdv .done{color:var(--muted);-webkit-text-stroke:0 transparent;text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
+.body.md{color:transparent;-webkit-text-fill-color:transparent;-webkit-text-stroke:0 transparent}
 .body.md::selection{color:transparent;-webkit-text-fill-color:transparent;background:color-mix(in srgb, var(--sel-bg) 60%, transparent)}
-.body.md::placeholder{-webkit-text-fill-color:var(--muted);color:var(--muted);opacity:.8}
+.body.md::placeholder{-webkit-text-fill-color:var(--muted);color:var(--muted);opacity:.8;-webkit-text-stroke:0 transparent}
 .chkrow{display:flex!important;align-items:center;gap:8px;font-size:13px!important;color:var(--ink)!important;margin:0!important}
 .chkrow input{width:auto!important}
 .work{flex:1;min-height:0;display:flex;min-width:0;position:relative}
@@ -265,15 +268,15 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .ref-head select{flex:1;min-width:0;font-weight:600;font-size:13.5px;padding:4px 6px}
 .ref-n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ref-scroll{flex:1;min-height:0;overflow:auto;outline:0}
-.ref-text{font-family:var(--ed-font);font-size:calc(var(--ed-size) * .92);letter-spacing:var(--ed-ls);line-height:var(--ed-lh);white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;color:var(--ink);opacity:.92;max-width:calc(var(--ed-wch) * 1em);margin:0 auto;padding:20px 22px 60px;cursor:text}
-.ref-text .ref-tags{display:block;font-family:var(--ui);font-size:13px;color:var(--accent);margin-bottom:10px;white-space:normal}
-.ref-text .ref-miss{color:var(--muted);font-family:var(--ui);font-size:14px}
+.ref-text{font-family:var(--ed-font);font-size:calc(var(--ed-size) * .92);letter-spacing:var(--ed-ls);line-height:var(--ed-lh);white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;color:var(--ed-ink);-webkit-text-stroke:var(--ed-stroke) currentColor;opacity:.92;max-width:calc(var(--ed-wch) * 1em);margin:0 auto;padding:20px 22px 60px;cursor:text}
+.ref-text .ref-tags{display:block;font-family:var(--ui);font-size:13px;color:var(--accent);-webkit-text-stroke:0 transparent;margin-bottom:10px;white-space:normal}
+.ref-text .ref-miss{color:var(--muted);-webkit-text-stroke:0 transparent;font-family:var(--ui);font-size:14px}
 .work.narrow .ref,.work.narrow .ref-split{display:none!important}
 #btnRef.on{background:var(--hover)}
 .ctx{position:fixed;z-index:20;min-width:190px;background:var(--paper);border:1px solid var(--line);border-radius:9px;box-shadow:0 6px 22px rgba(0,0,0,.18);padding:5px;display:flex;flex-direction:column}
 .ctx button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:6px;font-size:13.5px}
 .ctx button:hover,.ctx button:focus-visible{background:var(--hover);outline:0}
-.fhl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:transparent;pointer-events:none;box-sizing:border-box;border:0;margin:0}
+.fhl{position:absolute;z-index:0;overflow:hidden;white-space:pre-wrap;color:transparent;-webkit-text-stroke:0 transparent;pointer-events:none;box-sizing:border-box;border:0;margin:0}
 .fhl mark{color:transparent;background:color-mix(in srgb, var(--accent) 24%, transparent);border-radius:2px}
 .fhl mark.cur{background:color-mix(in srgb, var(--warn) 55%, transparent);box-shadow:0 0 0 1.5px var(--warn)}
 .jb{border-radius:50%;background:var(--paper);border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12);color:var(--muted)}
@@ -305,7 +308,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 .themes .sw-l{font-size:12.5px;color:var(--ink);text-align:center}
 .bkrow{display:flex;gap:8px;align-items:center;min-width:0}
 .bkrow span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
-.sample{margin:16px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:8px;font-family:var(--ed-font);font-size:var(--ed-size);letter-spacing:var(--ed-ls);line-height:var(--ed-lh);word-break:keep-all}
+.sample{margin:16px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:8px;color:var(--ed-ink);-webkit-text-stroke:var(--ed-stroke) currentColor;font-family:var(--ed-font);font-size:var(--ed-size);letter-spacing:var(--ed-ls);line-height:var(--ed-lh);word-break:keep-all}
 
 /* 목록을 좁게 끌었을 때 단추끼리 붙지 않게 */
 @container (max-width: 270px){.search,.side-actions,.side-works,.side-head{gap:6px}.search button{padding:4px 7px}.side-actions button{padding:6px 8px}.side-head button{padding:6px 9px}}
@@ -420,6 +423,10 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
         <input id="laySize" type="range" min="12" max="40" step="1" aria-label="글자 크기">
       </div>
       <div class="lay-sec">
+        <div class="lay-lbl"><span>글씨 진하기</span><output id="layInkVal">기본 (0단계)</output></div>
+        <input id="layInk" type="range" min="0" max="4" step="1" aria-label="글씨 진하기">
+      </div>
+      <div class="lay-sec">
         <div class="lay-lbl"><span>줄 간격</span><output id="layLhVal">1.90</output></div>
         <input id="layLh" type="range" min="1.2" max="3" step="0.05" aria-label="줄 간격">
       </div>
@@ -514,6 +521,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     <label for="fontSel">글꼴</label><select id="fontSel"></select>
     <label for="fontCustom">글꼴 직접 입력</label><input id="fontCustom" type="text" placeholder="설치된 글꼴 이름" autocomplete="off">
     <label for="sizeIn">글자 크기(px)</label><input id="sizeIn" type="number" min="12" max="40" step="1">
+    <label for="inkIn">글씨 진하기</label><select id="inkIn"><option value="0">0 · 기본</option><option value="1">1 · 약간 진하게</option><option value="2">2 · 진하게</option><option value="3">3 · 더 진하게</option><option value="4">4 · 아주 진하게</option></select>
     <label for="lsIn">자간(em)</label><input id="lsIn" type="number" min="-0.1" max="0.5" step="0.01">
     <label for="lhIn">줄 간격</label><input id="lhIn" type="number" min="1.2" max="3" step="0.05">
     <label for="wIn">한 줄 글자 수</label><input id="wIn" type="number" min="20" max="80" step="1">
@@ -688,7 +696,7 @@ const el = {
   selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnMerge: $('#btnMerge'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
   btnPin: $('#btnPin'), btnLayout: $('#btnLayout'), layBar: $('#layBar'), layClose: $('#layClose'), layReset: $('#layReset'),
   layPresets: $('#layPresets'), layAlign: $('#layAlign'), layPos: $('#layPos'), layPosVal: $('#layPosVal'), layPosNote: $('#layPosNote'),
-  layW: $('#layW'), layWVal: $('#layWVal'), laySize: $('#laySize'), laySizeVal: $('#laySizeVal'), layLh: $('#layLh'), layLhVal: $('#layLhVal'), layTop: $('#layTop'), layTopVal: $('#layTopVal'),
+  layW: $('#layW'), layWVal: $('#layWVal'), laySize: $('#laySize'), laySizeVal: $('#laySizeVal'), layInk: $('#layInk'), layInkVal: $('#layInkVal'), layLh: $('#layLh'), layLhVal: $('#layLhVal'), layTop: $('#layTop'), layTopVal: $('#layTopVal'),
   sheetHead: $('#sheetHead'), colGuideL: $('#colGuideL'), colGuideR: $('#colGuideR'), colMove: $('#colMove'), colHud: $('#colHud'),
   btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
   fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), mdl: $('#mdl'), btnRef: $('#btnRef'), refPane: $('#refPane'), refSplit: $('#refSplit'), refSel: $('#refSel'), refN: $('#refN'), refClose: $('#refClose'), refScroll: $('#refScroll'), refBody: $('#refBody'), workArea: $('#workArea'), ctxMenu: $('#ctxMenu'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
@@ -723,7 +731,15 @@ const appErr = (code, message) => Object.assign(new Error(message), { appCode: c
 
 /* ---------- 설정 ---------- */
 const SKEY = 'writer.settings';
-const DEFAULTS = { sideW: 310, refOpen: false, refW: 0.38, md: true, tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, edPos: 50, padTop: 26, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
+const DEFAULTS = { sideW: 310, refOpen: false, refW: 0.38, md: true, tagPanel: false, font: '', custom: '', size: 18, inkLevel: 0, ls: 0, lh: 1.9, wch: 40, edPos: 50, padTop: 26, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
+// 글씨 진하기 5단계(0~4): 어떤 글꼴이든 줄 폭 변화 없이 미세 획 두께 + 명암 대비를 단계별로 높인다
+const INK_LEVELS = [
+  { label: '기본',       stroke: '0em',     mix: '0%' },
+  { label: '약간 진하게', stroke: '0.010em', mix: '22%' },
+  { label: '진하게',     stroke: '0.018em', mix: '45%' },
+  { label: '더 진하게',   stroke: '0.026em', mix: '70%' },
+  { label: '아주 진하게', stroke: '0.034em', mix: '100%' }
+];
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
 function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 const cfg = Object.assign({}, DEFAULTS, loadJSON(SKEY) || {});
@@ -770,6 +786,8 @@ function buildFontOptions() {
 function applyCfg() {
   cfg.edPos = num(cfg.edPos, DEFAULTS.edPos, 0, 100);
   cfg.padTop = num(cfg.padTop, DEFAULTS.padTop, 8, 140);
+  cfg.inkLevel = Math.round(num(cfg.inkLevel, DEFAULTS.inkLevel, 0, INK_LEVELS.length - 1));
+  const ink = INK_LEVELS[cfg.inkLevel] || INK_LEVELS[0];
   const st = document.documentElement.style;
   let stack = DEFAULT_STACK;
   const custom = (cfg.custom || '').trim();
@@ -777,6 +795,8 @@ function applyCfg() {
   else if (cfg.font) stack = cfg.font;
   st.setProperty('--ed-font', stack);
   st.setProperty('--ed-size', cfg.size + 'px');
+  st.setProperty('--ed-stroke', ink.stroke);
+  st.setProperty('--ed-mix', ink.mix);
   st.setProperty('--ed-ls', cfg.ls + 'em');
   st.setProperty('--ed-lh', String(cfg.lh));
   st.setProperty('--ed-wch', String(cfg.wch));
@@ -1264,6 +1284,8 @@ function laySyncUI() {
   el.layPos.value = String(pos); el.layPosVal.textContent = layPosLabel(cfg.edPos);
   el.layW.value = String(cfg.wch); el.layWVal.textContent = `${cfg.wch}자`;
   el.laySize.value = String(cfg.size); el.laySizeVal.textContent = `${cfg.size}px`;
+  const il = Math.round(cfg.inkLevel || 0);
+  el.layInk.value = String(il); el.layInkVal.textContent = `${(INK_LEVELS[il] || INK_LEVELS[0]).label} (${il}단계)`;
   el.layLh.value = String(cfg.lh); el.layLhVal.textContent = Number(cfg.lh).toFixed(2);
   el.layTop.value = String(cfg.padTop); el.layTopVal.textContent = `${cfg.padTop}px`;
   el.layPresets.querySelectorAll('button[data-preset]').forEach(bt => {
@@ -2680,7 +2702,7 @@ function wire() {
   el.btnLayout.onclick = () => LAY.open ? closeLayout() : openLayout();
   el.layClose.onclick = closeLayout;
   el.layReset.onclick = () => {
-    cfg.edPos = DEFAULTS.edPos; cfg.wch = DEFAULTS.wch; cfg.size = DEFAULTS.size; cfg.lh = DEFAULTS.lh; cfg.padTop = DEFAULTS.padTop;
+    cfg.edPos = DEFAULTS.edPos; cfg.wch = DEFAULTS.wch; cfg.size = DEFAULTS.size; cfg.inkLevel = DEFAULTS.inkLevel; cfg.lh = DEFAULTS.lh; cfg.padTop = DEFAULTS.padTop;
     saveCfg(); applyCfg(); toast('집필 화면을 기본값으로 되돌렸습니다');
   };
   el.layPresets.addEventListener('click', e => {
@@ -2698,6 +2720,7 @@ function wire() {
   bindLay(el.layPos, v => { cfg.edPos = num(v, cfg.edPos, 0, 100); });
   bindLay(el.layW, v => { cfg.wch = Math.round(num(v, cfg.wch, 20, 80)); });
   bindLay(el.laySize, v => { cfg.size = Math.round(num(v, cfg.size, 12, 40)); });
+  bindLay(el.layInk, v => { cfg.inkLevel = Math.round(num(v, cfg.inkLevel, 0, INK_LEVELS.length - 1)); });
   bindLay(el.layLh, v => { cfg.lh = Math.round(num(v, cfg.lh, 1.2, 3) * 100) / 100; });
   bindLay(el.layTop, v => { cfg.padTop = Math.round(num(v, cfg.padTop, 8, 140)); });
 
@@ -2758,7 +2781,7 @@ function wire() {
 
   // 설정
   $('#btnSettings').onclick = () => {
-    $('#fontSel').value = cfg.font; $('#fontCustom').value = cfg.custom; $('#sizeIn').value = cfg.size; $('#lsIn').value = cfg.ls;
+    $('#fontSel').value = cfg.font; $('#fontCustom').value = cfg.custom; $('#sizeIn').value = cfg.size; $('#inkIn').value = String(Math.round(cfg.inkLevel || 0)); $('#lsIn').value = cfg.ls;
     $('#lhIn').value = cfg.lh; $('#wIn').value = cfg.wch; $('#posIn').value = Math.round(cfg.edPos); $('#topIn').value = cfg.padTop; $('#mdIn').checked = cfg.md !== false; $('#setDlg').showModal();
     kvGet('backup').then(h => { $('#bkName').textContent = h ? h.name : '지정 안 됨'; });
   };
@@ -2767,6 +2790,7 @@ function wire() {
   bind('#fontSel', v => { cfg.font = v; cfg.custom = ''; $('#fontCustom').value = ''; });
   bind('#fontCustom', v => { cfg.custom = v; });
   bind('#sizeIn', v => { cfg.size = num(v, cfg.size, 12, 40); });
+  bind('#inkIn', v => { cfg.inkLevel = Math.round(num(v, cfg.inkLevel, 0, INK_LEVELS.length - 1)); });
   bind('#lsIn', v => { cfg.ls = num(v, cfg.ls, -0.1, 0.5); });
   bind('#lhIn', v => { cfg.lh = num(v, cfg.lh, 1.2, 3); });
   bind('#wIn', v => { cfg.wch = num(v, cfg.wch, 20, 80); });
@@ -2829,7 +2853,7 @@ async function boot() {
     clearTimeout(loadTimer);
   }
 }
-window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot, LAY, LAY_PRESETS, columnMetrics, layoutColumn, applyCfg, openLayout, closeLayout };
+window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot, LAY, LAY_PRESETS, INK_LEVELS, columnMetrics, layoutColumn, applyCfg, openLayout, closeLayout };
 boot();
 })();
 </script>
