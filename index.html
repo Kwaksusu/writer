@@ -33,7 +33,7 @@ if (/^https?:$/.test(location.protocol)) {
   --warn:#8A5700; --warn-bg:#FBF1DC; --err:#A5201A; --err-bg:#FBE7E5;
   --sel-bg:#B4DDD6; --sel-ink:#0C1A19; --on-bg:#CFE5E1;
   --ed-font:"Noto Serif KR","Nanum Myeongjo","바탕","Batang","AppleMyungjo",serif;
-  --ed-size:18px; --ed-ls:0em; --ed-lh:1.9; --ed-wch:40;
+  --ed-size:18px; --ed-ls:0em; --ed-lh:1.9; --ed-wch:40; --ed-top:26px;
   color-scheme:light;
 }
 :root[data-theme="paper"]{
@@ -177,7 +177,7 @@ button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--ac
 .banner.error{background:var(--err-bg);color:var(--err)}
 .banner.info{background:var(--warn-bg);color:var(--warn)}
 .banner button{padding:3px 10px;font-size:13px}
-.paper{flex:1;min-height:0;display:flex;padding:26px 0 0}
+.paper{flex:1;min-height:0;display:flex;padding:var(--ed-top,26px) 0 0}
 .sheet{font-size:var(--ed-size);width:100%;display:flex;flex-direction:column;min-height:0;min-width:0;flex:1 1 auto;position:relative;--colw:min(calc(100% - 2 * var(--gut)), calc(var(--ed-wch) * var(--ed-size)));--gut:24px}
 .sheet > .head{width:var(--colw);margin:0 auto;flex:none}
 .tw-line{position:absolute;left:0;height:0;border-top:1px solid var(--line);pointer-events:none;z-index:0}
@@ -208,6 +208,29 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .jump{position:absolute;z-index:3;bottom:20px;right:max(46px, calc(50% - var(--ed-wch) * var(--ed-size) / 2 - 54px));display:flex;flex-direction:column;gap:8px;opacity:.45;transition:opacity .15s}
 .jump:hover{opacity:1}
 .findbar{position:absolute;z-index:4;top:8px;right:28px;width:min(360px,calc(100% - 20px));background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:6px;display:flex;flex-direction:column;gap:6px}
+.laybar{position:absolute;z-index:8;top:8px;right:16px;width:min(308px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:11px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:10px 13px;display:flex;flex-direction:column;gap:9px;font-size:13.5px}
+.work.has-ref:not(.narrow) .laybar{top:50px;max-height:calc(100% - 62px)}
+.lay-head{display:flex;align-items:center;gap:6px}
+.lay-head strong{flex:1;font-size:14.5px;letter-spacing:-.01em}
+.lay-reset{padding:3px 9px;font-size:12.5px;border-radius:7px;color:var(--muted)}
+.lay-sec{display:flex;flex-direction:column;gap:4px}
+.lay-lbl{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+.lay-lbl output{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.laybar input[type=range]{width:100%;margin:0;accent-color:var(--accent);cursor:pointer}
+.lay-presets,.lay-align{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.lay-presets button,.lay-align button{padding:4.5px 4px;font-size:12.5px;border-radius:7px;text-align:center}
+.lay-note{margin:2px 0 0;font-size:12px;line-height:1.45;color:var(--warn);background:var(--warn-bg);padding:5px 8px;border-radius:6px}
+.lay-tip{margin:1px 0 0;font-size:12px;line-height:1.45;color:var(--muted)}
+/* 집필 화면 조절 모드일 때만 보이는 원고 좌우 안내선·이동 손잡이 */
+.col-guide{position:absolute;top:0;bottom:0;width:12px;margin-left:-6px;cursor:col-resize;z-index:5;touch-action:none}
+.col-guide::after{content:"";position:absolute;top:0;bottom:0;left:5.5px;width:0;border-left:1.5px dashed color-mix(in srgb,var(--accent) 52%,transparent);transition:border-color .12s}
+.col-guide::before{content:"";position:absolute;left:3px;bottom:84px;width:6px;height:36px;border-radius:999px;background:color-mix(in srgb,var(--accent) 55%,transparent);transition:background-color .12s,transform .12s}
+.col-guide:hover::after,.col-guide.drag::after{border-left:2px solid var(--accent);left:5px}
+.col-guide:hover::before,.col-guide.drag::before{background:var(--accent);transform:scaleX(1.2)}
+.col-move{position:absolute;bottom:14px;transform:translateX(-50%);z-index:5;padding:4px 12px;border-radius:999px;background:var(--paper);border:1px solid var(--accent);color:var(--accent);font-size:12.5px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.12);cursor:grab;user-select:none;white-space:nowrap;touch-action:none}
+.col-move:hover,.col-move.drag{background:var(--accent);color:var(--accent-ink)}
+.col-move.drag{cursor:grabbing}
+.col-hud{position:absolute;top:10px;transform:translateX(-50%);z-index:6;padding:4px 10px;border-radius:7px;background:var(--ink);color:var(--bg);font-size:12.5px;font-variant-numeric:tabular-nums;pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .frow{display:flex;align-items:center;gap:4px}
 .frow input{flex:1;min-width:0;padding:5px 8px}
 .frow button:not(.ib){padding:5px 10px;font-size:13px}
@@ -231,7 +254,7 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .body.md::placeholder{-webkit-text-fill-color:var(--muted);color:var(--muted);opacity:.8}
 .chkrow{display:flex!important;align-items:center;gap:8px;font-size:13px!important;color:var(--ink)!important;margin:0!important}
 .chkrow input{width:auto!important}
-.work{flex:1;min-height:0;display:flex;min-width:0}
+.work{flex:1;min-height:0;display:flex;min-width:0;position:relative}
 .work > .paper,.work > .emptystate{flex:1;min-width:0}
 .ref-split{flex:none;width:7px;margin:0 -3px;cursor:col-resize;position:relative;z-index:5}
 .ref-split::after{content:"";position:absolute;left:3px;top:0;bottom:0;width:1px;background:var(--line)}
@@ -260,7 +283,7 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .status.error{color:var(--err);font-weight:600}
 .toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:14px;z-index:9;max-width:90vw}
 
-dialog{border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);padding:20px 22px;width:min(92vw,420px)}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);padding:20px 22px;width:min(92vw,420px);max-height:92vh;overflow:auto}
 dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog h2{margin:0 0 14px;font-size:18px}
 dialog label{display:block;font-size:14px;margin-bottom:6px;color:var(--muted)}
@@ -288,7 +311,6 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
 @container (max-width: 270px){.search,.side-actions,.side-works,.side-head{gap:6px}.search button{padding:4px 7px}.side-actions button{padding:6px 8px}.side-head button{padding:6px 9px}}
 @media (max-width:760px){
   .app{grid-template-columns:min(var(--side-w), 230px) minmax(0,1fr)}
-  .paper{padding:16px 0 0}
   .sheet{--gut:14px}
   .search,.side-actions,.side-works{gap:6px}
   .search button{padding:4px 7px}
@@ -357,11 +379,56 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
       <button id="btnRef" class="ib" title="참고 창 (읽기 전용으로 다른 화 옆에 띄우기) · 목록에서 화를 우클릭하거나 Alt/Option+클릭" aria-label="참고 창" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M13.5 4.5v15M15.8 8.5h2.4M15.8 11.5h2.4M15.8 14.5h2.4"/></svg></button>
       <button id="btnTW" class="ib" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정" aria-label="타자기 모드" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9V3.8h8V9"/><path d="M4 9h16"/><rect x="3.5" y="11.2" width="17" height="8.6" rx="2.2"/><path d="M7.6 14.3h.01M10.5 14.3h.01M13.5 14.3h.01M16.4 14.3h.01" stroke-width="2.2"/><path d="M9 17.3h6"/></svg></button>
       <button id="btnPin" class="ib" disabled title="이 화를 목록 맨 위에 고정" aria-label="고정" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 3.6 14.5 8.9 20.3 9.6 16 13.6 17.2 19.4 12 16.5 6.8 19.4 8 13.6 3.7 9.6 9.5 8.9"/></svg></button>
+      <button id="btnLayout" class="ib" title="집필 화면 조절 (타이핑 위치 · 가로 폭 · 크기)" aria-label="집필 화면 조절" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5v14M19.5 5v14M8 9h8M8 12h8M8 15h5"/></svg></button>
       <button id="btnSettings" class="ib" title="설정" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/></svg></button>
     </header>
     <div id="banner" class="banner" hidden role="alert"></div>
 
     <div class="work" id="workArea">
+    <div class="laybar" id="layBar" hidden role="region" aria-label="집필 화면 조절">
+      <div class="lay-head">
+        <strong>집필 화면 조절</strong>
+        <button type="button" class="lay-reset" id="layReset" title="위치·폭·크기·여백을 기본값으로 되돌립니다">기본값</button>
+        <button type="button" class="ib sm" id="layClose" title="닫기 (Esc)" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
+      </div>
+      <div class="lay-sec">
+        <div class="lay-lbl"><span>집필 크기 프리셋</span></div>
+        <div class="lay-presets" id="layPresets">
+          <button type="button" data-preset="compact" title="글자 17px · 한 줄 32자 · 줄 간격 1.9 (모바일 연재 감각)">좁게</button>
+          <button type="button" data-preset="normal" title="글자 18px · 한 줄 40자 · 줄 간격 1.9 (기본)">보통</button>
+          <button type="button" data-preset="wide" title="글자 19px · 한 줄 54자 · 줄 간격 1.95 (시원한 폭)">넓게</button>
+          <button type="button" data-preset="large" title="글자 22px · 한 줄 36자 · 줄 간격 2.0 (큰 글씨)">큰 글씨</button>
+        </div>
+      </div>
+      <div class="lay-sec">
+        <div class="lay-lbl"><span>타이핑 가로 위치</span><output id="layPosVal">가운데 (50%)</output></div>
+        <input id="layPos" type="range" min="0" max="100" step="1" aria-label="타이핑 가로 위치">
+        <div class="lay-align" id="layAlign">
+          <button type="button" data-pos="0">왼쪽</button>
+          <button type="button" data-pos="50">가운데</button>
+          <button type="button" data-pos="75">약간 오른쪽</button>
+          <button type="button" data-pos="100">오른쪽</button>
+        </div>
+        <p class="lay-note" id="layPosNote" hidden></p>
+      </div>
+      <div class="lay-sec">
+        <div class="lay-lbl"><span>한 줄 글자 수 (가로 폭)</span><output id="layWVal">40자</output></div>
+        <input id="layW" type="range" min="20" max="80" step="1" aria-label="한 줄 글자 수">
+      </div>
+      <div class="lay-sec">
+        <div class="lay-lbl"><span>글자 크기</span><output id="laySizeVal">18px</output></div>
+        <input id="laySize" type="range" min="12" max="40" step="1" aria-label="글자 크기">
+      </div>
+      <div class="lay-sec">
+        <div class="lay-lbl"><span>줄 간격</span><output id="layLhVal">1.90</output></div>
+        <input id="layLh" type="range" min="1.2" max="3" step="0.05" aria-label="줄 간격">
+      </div>
+      <div class="lay-sec">
+        <div class="lay-lbl"><span>위쪽 여백</span><output id="layTopVal">26px</output></div>
+        <input id="layTop" type="range" min="8" max="140" step="2" aria-label="위쪽 여백">
+      </div>
+      <p class="lay-tip">이 창이 열려 있는 동안 원고 좌우 안내선과 아래 이동 손잡이를 직접 끌어서 조절할 수 있습니다. (두 번 누르면 기본값)</p>
+    </div>
     <div id="emptyState" class="emptystate"><p id="emptyMsg">왼쪽에서 화를 고르거나 새 화를 만드세요.</p></div>
 
     <div id="paper" class="paper" hidden>
@@ -385,7 +452,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
         </div>
       </div>
       <div class="sheet">
-        <div class="head">
+        <div class="head" id="sheetHead">
           <input id="title" class="title" type="text" placeholder="제목 (파일 이름이 됩니다)" autocomplete="off" spellcheck="false" aria-label="제목">
           <input id="tags" class="tagline" type="text" placeholder="#태그  (띄어 써서 여러 개)" autocomplete="off" spellcheck="false" aria-label="태그">
         </div>
@@ -393,6 +460,10 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
         <div class="fhl" id="fHl" hidden aria-hidden="true"></div>
         <div class="mdl mdv" id="mdl" hidden aria-hidden="true"></div>
         <textarea id="body" class="body" spellcheck="false" aria-label="본문" placeholder="본문을 쓰세요."></textarea>
+        <div class="col-guide" id="colGuideL" hidden title="끌어서 왼쪽 경계·폭 조절 · 두 번 눌러 기본값"></div>
+        <div class="col-guide" id="colGuideR" hidden title="끌어서 오른쪽 경계·폭 조절 · 두 번 눌러 기본값"></div>
+        <div class="col-move" id="colMove" hidden title="끌어서 집필 영역 좌우 이동 · 두 번 눌러 가운데">⇄ 좌우 이동</div>
+        <div class="col-hud" id="colHud" hidden aria-hidden="true"></div>
       </div>
     </div>
     <div class="ref-split" id="refSplit" hidden title="끌어서 폭 조절 · 두 번 눌러 기본 폭"></div>
@@ -446,6 +517,8 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     <label for="lsIn">자간(em)</label><input id="lsIn" type="number" min="-0.1" max="0.5" step="0.01">
     <label for="lhIn">줄 간격</label><input id="lhIn" type="number" min="1.2" max="3" step="0.05">
     <label for="wIn">한 줄 글자 수</label><input id="wIn" type="number" min="20" max="80" step="1">
+    <label for="posIn">가로 위치(%)</label><input id="posIn" type="number" min="0" max="100" step="1" title="0: 왼쪽, 50: 가운데, 100: 오른쪽">
+    <label for="topIn">위쪽 여백(px)</label><input id="topIn" type="number" min="8" max="140" step="2">
     <label for="mdIn">마크다운</label><label class="chkrow"><input id="mdIn" type="checkbox"> **굵게** ~~취소선~~ - [ ] 체크를 화면에서 모양으로 보기</label>
     <label id="themeLbl">테마</label>
     <div class="themes" id="themeSel" role="radiogroup" aria-labelledby="themeLbl"></div>
@@ -613,7 +686,11 @@ const el = {
   app: $('#app'), workSel: $('#workSel'), btnNewWork: $('#btnNewWork'), q: $('#q'), btnNewDoc: $('#btnNewDoc'),
   btnReload: $('#btnReload'), btnRenameWork: $('#btnRenameWork'), btnDelWork: $('#btnDelWork'), btnSelect: $('#btnSelect'),
   selbar: $('#selbar'), btnSelAll: $('#btnSelAll'), btnSelDel: $('#btnSelDel'), btnMerge: $('#btnMerge'), btnSelEnd: $('#btnSelEnd'), btnRoot: $('#btnRoot'), btnBackup: $('#btnBackup'), btnBackupWhere: $('#btnBackupWhere'), list: $('#list'), totals: $('#totals'), btnSide: $('#btnSide'),
-  btnPin: $('#btnPin'), btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
+  btnPin: $('#btnPin'), btnLayout: $('#btnLayout'), layBar: $('#layBar'), layClose: $('#layClose'), layReset: $('#layReset'),
+  layPresets: $('#layPresets'), layAlign: $('#layAlign'), layPos: $('#layPos'), layPosVal: $('#layPosVal'), layPosNote: $('#layPosNote'),
+  layW: $('#layW'), layWVal: $('#layWVal'), laySize: $('#laySize'), laySizeVal: $('#laySizeVal'), layLh: $('#layLh'), layLhVal: $('#layLhVal'), layTop: $('#layTop'), layTopVal: $('#layTopVal'),
+  sheetHead: $('#sheetHead'), colGuideL: $('#colGuideL'), colGuideR: $('#colGuideR'), colMove: $('#colMove'), colHud: $('#colHud'),
+  btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
   fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), mdl: $('#mdl'), btnRef: $('#btnRef'), refPane: $('#refPane'), refSplit: $('#refSplit'), refSel: $('#refSel'), refN: $('#refN'), refClose: $('#refClose'), refScroll: $('#refScroll'), refBody: $('#refBody'), workArea: $('#workArea'), ctxMenu: $('#ctxMenu'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
   title: $('#title'), tags: $('#tags'), body: $('#body'), meter: $('#meter'), cWith: $('#cWith'), cWithout: $('#cWithout'),
@@ -646,7 +723,7 @@ const appErr = (code, message) => Object.assign(new Error(message), { appCode: c
 
 /* ---------- 설정 ---------- */
 const SKEY = 'writer.settings';
-const DEFAULTS = { sideW: 310, refOpen: false, refW: 0.38, md: true, tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
+const DEFAULTS = { sideW: 310, refOpen: false, refW: 0.38, md: true, tagPanel: false, font: '', custom: '', size: 18, ls: 0, lh: 1.9, wch: 40, edPos: 50, padTop: 26, theme: '', sideOpen: true, sortDesc: false, typewriter: false };
 function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
 function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 const cfg = Object.assign({}, DEFAULTS, loadJSON(SKEY) || {});
@@ -691,6 +768,8 @@ function buildFontOptions() {
   $('#fontSel').value = cfg.font;
 }
 function applyCfg() {
+  cfg.edPos = num(cfg.edPos, DEFAULTS.edPos, 0, 100);
+  cfg.padTop = num(cfg.padTop, DEFAULTS.padTop, 8, 140);
   const st = document.documentElement.style;
   let stack = DEFAULT_STACK;
   const custom = (cfg.custom || '').trim();
@@ -701,10 +780,12 @@ function applyCfg() {
   st.setProperty('--ed-ls', cfg.ls + 'em');
   st.setProperty('--ed-lh', String(cfg.lh));
   st.setProperty('--ed-wch', String(cfg.wch));
+  st.setProperty('--ed-top', cfg.padTop + 'px');
   applyTheme();
   el.app.classList.toggle('side-hidden', !cfg.sideOpen);
   el.app.style.setProperty('--side-w', (cfg.sideW || 310) + 'px');
   if (typeof twLayout === 'function' && el.btnTW) { twLayout(); twSchedule(); }
+  if (typeof laySyncUI === 'function' && LAY.open) laySyncUI();
 }
 // 테마 6개: 밝은 셋, 어두운 셋. 시스템 설정은 따르지 않는다(처음 한 번만 참고).
 const THEMES = [
@@ -1131,17 +1212,112 @@ function updateSelection() {
   const c = Core.countText(el.body.value.slice(a, b));
   el.cSel.textContent = `${fmt(c.withSpaces)} / ${fmt(c.noSpaces)}`; el.cSelCell.hidden = false;
 }
+/* ---------- 집필 화면 배치·크기 조절 (타이핑 위치 · 가로 폭 · 여백 · 안내선) ---------- */
+const LAY = { open: false };
+const LAY_PRESETS = {
+  compact: { size: 17, wch: 32, lh: 1.9 },
+  normal:  { size: 18, wch: 40, lh: 1.9 },
+  wide:    { size: 19, wch: 54, lh: 1.95 },
+  large:   { size: 22, wch: 36, lh: 2.0 }
+};
+function columnMetrics() {
+  const b = el.body, sheet = b.parentElement;
+  const sw = sheet.clientWidth;
+  const sbw = Math.max(0, b.offsetWidth - b.clientWidth);
+  const gut = parseFloat(getComputedStyle(sheet).getPropertyValue('--gut')) || 24;
+  const usable = Math.max(0, sw - sbw);
+  const maxW = Math.max(120, usable - 2 * gut);
+  const wantW = cfg.wch * cfg.size;
+  const W = Math.floor(Math.min(wantW, maxW));
+  const slack = Math.max(0, usable - 2 * gut - W);
+  const pos = Math.max(0, Math.min(100, Number.isFinite(cfg.edPos) ? cfg.edPos : 50));
+  const left = Math.round(gut + slack * (pos / 100));
+  const right = Math.max(0, usable - left - W);
+  return { sw, sbw, gut, usable, maxW, wantW, W, slack, pos, left, right };
+}
+function layPosLabel(p) {
+  const r = Math.round(p);
+  if (r <= 2) return `왼쪽 (${r}%)`;
+  if (r >= 98) return `오른쪽 (${r}%)`;
+  if (Math.abs(r - 50) <= 1) return `가운데 (${r}%)`;
+  return r < 50 ? `왼쪽 쪽 (${r}%)` : `오른쪽 쪽 (${r}%)`;
+}
+function layPlaceGuides(m) {
+  const show = LAY.open && !el.paper.hidden && m && m.sw > 0;
+  el.colGuideL.hidden = el.colGuideR.hidden = el.colMove.hidden = !show;
+  if (!show) { el.colHud.hidden = true; return; }
+  el.colGuideL.style.left = m.left + 'px';
+  el.colGuideR.style.left = (m.left + m.W) + 'px';
+  const mid = Math.round(m.left + m.W / 2);
+  el.colMove.style.left = Math.max(56, Math.min(m.usable - 56, mid)) + 'px';
+  el.colHud.style.left = Math.max(76, Math.min(m.usable - 76, mid)) + 'px';
+}
+function laySyncNote(m) {
+  if (!el.layPosNote) return;
+  const tight = !el.paper.hidden && m && m.sw > 0 && m.slack < 16;
+  el.layPosNote.hidden = !tight;
+  if (tight) el.layPosNote.textContent = '지금 창 폭에 비해 한 줄 글자 수가 넓어 좌우 이동 여유가 적습니다. 한 줄 글자 수를 줄이거나 왼쪽 목록을 접으면 더 넓게 옮길 수 있습니다.';
+}
+function laySyncUI() {
+  if (!el.layPos) return;
+  const pos = Math.round(cfg.edPos);
+  el.layPos.value = String(pos); el.layPosVal.textContent = layPosLabel(cfg.edPos);
+  el.layW.value = String(cfg.wch); el.layWVal.textContent = `${cfg.wch}자`;
+  el.laySize.value = String(cfg.size); el.laySizeVal.textContent = `${cfg.size}px`;
+  el.layLh.value = String(cfg.lh); el.layLhVal.textContent = Number(cfg.lh).toFixed(2);
+  el.layTop.value = String(cfg.padTop); el.layTopVal.textContent = `${cfg.padTop}px`;
+  el.layPresets.querySelectorAll('button[data-preset]').forEach(bt => {
+    const pr = LAY_PRESETS[bt.dataset.preset];
+    bt.classList.toggle('on', !!pr && cfg.size === pr.size && cfg.wch === pr.wch && Math.abs(cfg.lh - pr.lh) < 0.005);
+  });
+  el.layAlign.querySelectorAll('button[data-pos]').forEach(bt => {
+    bt.classList.toggle('on', Math.abs(pos - Number(bt.dataset.pos)) <= 1);
+  });
+  if (!el.paper.hidden && el.body.parentElement.clientWidth) laySyncNote(columnMetrics());
+  else el.layPosNote.hidden = true;
+}
+function layShowHud(msg) {
+  if (!LAY.open || el.paper.hidden) { el.colHud.hidden = true; return; }
+  el.colHud.textContent = msg || `한 줄 ${cfg.wch}자 · 위치 ${Math.round(cfg.edPos)}%`;
+  el.colHud.hidden = false;
+}
+function openLayout() {
+  if (FIND.open) closeFind();
+  LAY.open = true; el.layBar.hidden = false;
+  el.btnLayout.classList.add('on'); el.btnLayout.setAttribute('aria-pressed', 'true');
+  laySyncUI(); layoutColumn();
+}
+function closeLayout() {
+  if (!LAY.open) return;
+  LAY.open = false; el.layBar.hidden = true;
+  el.btnLayout.classList.remove('on'); el.btnLayout.setAttribute('aria-pressed', 'false');
+  layPlaceGuides(null);
+}
+
 /* ---------- 타자기 모드: 커서가 있는 줄을 화면 가운데에 고정 ---------- */
 const TW = { mirror: null, raf: 0 };
 const twLineHeight = () => { const v = parseFloat(getComputedStyle(el.body).lineHeight); return Number.isFinite(v) ? v : cfg.size * cfg.lh; };
-// 본문 칸은 편집 영역 전체 폭(스크롤바가 맨 오른쪽), 글 줄은 제목과 같은 폭으로 가운데.
-// 스크롤바 폭(윈도우 약 15px, 맥 0px)만큼 오른쪽 여백을 줄여 글 줄이 제목과 정확히 겹치게 한다.
+// 본문 칸은 편집 영역 전체 폭(스크롤바가 맨 오른쪽), 글 줄과 제목 칸은 설정한 폭·가로 위치에 정확히 맞춘다.
+// 스크롤바 폭(윈도우 약 15px, 맥 0px)을 뺀 유효 폭 안에서 좌우 안전 여백(--gut)을 유지해 사이드바·스크롤바와 간섭하지 않는다.
 function layoutColumn() {
   const b = el.body, sheet = b.parentElement;
-  if (el.paper.hidden || !sheet.clientWidth) return;
-  const W = el.title.parentElement.getBoundingClientRect().width, side = (sheet.clientWidth - W) / 2;
-  const sbw = Math.max(0, b.offsetWidth - b.clientWidth); TW.sbw = b.offsetWidth - b.clientWidth;
-  b.style.paddingLeft = side + 'px'; b.style.paddingRight = Math.max(0, side - sbw) + 'px';
+  if (el.paper.hidden || !sheet.clientWidth) { layPlaceGuides(null); return; }
+  const m = columnMetrics();
+  TW.sbw = b.offsetWidth - b.clientWidth;
+  el.sheetHead.style.width = m.W + 'px';
+  el.sheetHead.style.marginLeft = m.left + 'px';
+  el.sheetHead.style.marginRight = '0px';
+  b.style.paddingLeft = m.left + 'px';
+  b.style.paddingRight = m.right + 'px';
+  // 맨 위/맨 아래 이동 버튼: 글 영역 바깥쪽에 두어 글·스크롤바와 겹치지 않게
+  if (el.jump) {
+    if (m.right >= 54) { el.jump.style.left = ''; el.jump.style.right = (m.sbw + m.right - 46) + 'px'; }
+    else if (m.left >= 54) { el.jump.style.right = 'auto'; el.jump.style.left = (m.left - 46) + 'px'; }
+    else { el.jump.style.left = ''; el.jump.style.right = (m.sbw + 10) + 'px'; }
+  }
+  layPlaceGuides(m);
+  if (LAY.open) laySyncNote(m);
+  if (FIND.open) hlBox();
   mdBox();
 }
 function twLayout() {
@@ -1167,7 +1343,7 @@ function twStyle(m) {
   const cs = getComputedStyle(el.body);
   for (const k of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'wordSpacing', 'lineHeight', 'paddingLeft', 'paddingRight', 'wordBreak', 'overflowWrap', 'tabSize', 'fontKerning', 'fontFeatureSettings', 'textRendering']) m.style[k] = cs[k];
   m.style.width = el.body.clientWidth + 'px';
-  return [cs.fontFamily, cs.fontSize, cs.letterSpacing, cs.lineHeight, el.body.clientWidth, cs.paddingTop].join('|');
+  return [cs.fontFamily, cs.fontSize, cs.letterSpacing, cs.lineHeight, el.body.clientWidth, cs.paddingTop, cs.paddingLeft, cs.paddingRight].join('|');
 }
 function twMirror() {
   if (!TW.mirror) {
@@ -1414,6 +1590,7 @@ function findReplaceAll() {
 }
 function openFind(withReplace) {
   if (!S.cur || el.paper.hidden) return;
+  if (LAY.open) closeLayout();
   const b = el.body, sel = b.value.slice(b.selectionStart, b.selectionEnd);
   if (sel && sel.length <= 100 && !sel.includes('\n')) el.fq.value = sel;
   FIND.open = true; el.findBar.hidden = false; el.btnFind.classList.add('on');
@@ -1525,6 +1702,7 @@ function refShown() { return !!cfg.refOpen && !!REF.work; }
 function refLayout() {
   const on = refShown();
   el.refPane.hidden = el.refSplit.hidden = !on;
+  el.workArea.classList.toggle('has-ref', on);
   el.btnRef.classList.toggle('on', on); el.btnRef.setAttribute('aria-pressed', String(on));
   const W = el.workArea.clientWidth;
   el.workArea.classList.toggle('narrow', W > 0 && W < 860);
@@ -2490,6 +2668,7 @@ function wire() {
     else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF' && S.cur && !el.paper.hidden) { e.preventDefault(); openFind(e.altKey); }
     else if (e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'KeyH' && S.cur && !el.paper.hidden) { e.preventDefault(); openFind(true); }
     else if ((e.ctrlKey || e.metaKey) && !e.altKey && e.code === 'KeyG' && FIND.open) { e.preventDefault(); findGo(e.shiftKey ? -1 : 1); } // 한글 입력 중이면 key가 'ㄴ'으로 올 수 있어 물리 키(KeyS)도 본다
+    else if (e.key === 'Escape' && !e.isComposing && LAY.open && !FIND.open && el.ctxMenu.hidden && !document.querySelector('dialog[open]')) { e.preventDefault(); closeLayout(); }
   });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { rememberPos(); saveNow(false); } else { checkExternal(); refReload(); } });
   window.addEventListener('focus', () => { checkExternal(); refReload(); });
@@ -2497,10 +2676,90 @@ function wire() {
   window.addEventListener('blur', () => { if (S.dirty) saveNow(false); });
   window.addEventListener('beforeunload', e => { if (S.dirty || S.saving) { e.preventDefault(); e.returnValue = ''; } });
 
+  // 집필 화면 조절 패널 + 원고 안내선 직접 끌기
+  el.btnLayout.onclick = () => LAY.open ? closeLayout() : openLayout();
+  el.layClose.onclick = closeLayout;
+  el.layReset.onclick = () => {
+    cfg.edPos = DEFAULTS.edPos; cfg.wch = DEFAULTS.wch; cfg.size = DEFAULTS.size; cfg.lh = DEFAULTS.lh; cfg.padTop = DEFAULTS.padTop;
+    saveCfg(); applyCfg(); toast('집필 화면을 기본값으로 되돌렸습니다');
+  };
+  el.layPresets.addEventListener('click', e => {
+    const bt = e.target.closest('button[data-preset]'); if (!bt) return;
+    const pr = LAY_PRESETS[bt.dataset.preset]; if (!pr) return;
+    cfg.size = pr.size; cfg.wch = pr.wch; cfg.lh = pr.lh;
+    saveCfg(); applyCfg();
+  });
+  el.layAlign.addEventListener('click', e => {
+    const bt = e.target.closest('button[data-pos]'); if (!bt) return;
+    cfg.edPos = num(bt.dataset.pos, DEFAULTS.edPos, 0, 100);
+    saveCfg(); applyCfg();
+  });
+  const bindLay = (elm, fn) => elm.addEventListener('input', () => { fn(elm.value); saveCfg(); applyCfg(); });
+  bindLay(el.layPos, v => { cfg.edPos = num(v, cfg.edPos, 0, 100); });
+  bindLay(el.layW, v => { cfg.wch = Math.round(num(v, cfg.wch, 20, 80)); });
+  bindLay(el.laySize, v => { cfg.size = Math.round(num(v, cfg.size, 12, 40)); });
+  bindLay(el.layLh, v => { cfg.lh = Math.round(num(v, cfg.lh, 1.2, 3) * 100) / 100; });
+  bindLay(el.layTop, v => { cfg.padTop = Math.round(num(v, cfg.padTop, 8, 140)); });
+
+  const attachGuideDrag = (elm, onMove) => {
+    elm.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || el.paper.hidden) return;
+      e.preventDefault(); elm.setPointerCapture(e.pointerId); elm.classList.add('drag');
+      const m0 = columnMetrics(), startX = e.clientX;
+      const mv = ev => onMove(ev.clientX - startX, m0);
+      const up = () => {
+        elm.classList.remove('drag'); el.colHud.hidden = true;
+        elm.removeEventListener('pointermove', mv); elm.removeEventListener('pointerup', up); elm.removeEventListener('pointercancel', up);
+        saveCfg();
+      };
+      elm.addEventListener('pointermove', mv); elm.addEventListener('pointerup', up); elm.addEventListener('pointercancel', up);
+    });
+  };
+  const liveUsable = () => {
+    const b = el.body, sw = b.parentElement.clientWidth, sbw = Math.max(0, b.offsetWidth - b.clientWidth);
+    return Math.max(0, sw - sbw);
+  };
+  attachGuideDrag(el.colGuideL, (dx, m0) => {
+    const usable = liveUsable(), maxW = Math.max(120, usable - 2 * m0.gut);
+    const rightEdge0 = m0.left + m0.W;
+    const wantW = rightEdge0 - (m0.left + dx);
+    const newWch = Math.round(Math.max(20, Math.min(80, wantW / cfg.size)));
+    const newW = Math.floor(Math.min(newWch * cfg.size, maxW));
+    let newLeft = (wantW >= 20 * cfg.size && wantW <= 80 * cfg.size) ? (rightEdge0 - newW) : (m0.left + dx);
+    newLeft = Math.max(m0.gut, Math.min(usable - m0.gut - newW, newLeft));
+    const newSlack = Math.max(0, usable - 2 * m0.gut - newW);
+    cfg.wch = newWch;
+    if (newSlack > 0) cfg.edPos = Math.round(Math.max(0, Math.min(100, ((newLeft - m0.gut) / newSlack) * 100)) * 10) / 10;
+    applyCfg(); layShowHud();
+  });
+  attachGuideDrag(el.colGuideR, (dx, m0) => {
+    const usable = liveUsable(), maxW = Math.max(120, usable - 2 * m0.gut);
+    const wantRight = m0.left + m0.W + dx;
+    const wantW = wantRight - m0.left;
+    const newWch = Math.round(Math.max(20, Math.min(80, wantW / cfg.size)));
+    const newW = Math.floor(Math.min(newWch * cfg.size, maxW));
+    let newLeft = (wantW >= 20 * cfg.size && wantW <= 80 * cfg.size) ? m0.left : (wantRight - newW);
+    newLeft = Math.max(m0.gut, Math.min(usable - m0.gut - newW, newLeft));
+    const newSlack = Math.max(0, usable - 2 * m0.gut - newW);
+    cfg.wch = newWch;
+    if (newSlack > 0) cfg.edPos = Math.round(Math.max(0, Math.min(100, ((newLeft - m0.gut) / newSlack) * 100)) * 10) / 10;
+    applyCfg(); layShowHud();
+  });
+  attachGuideDrag(el.colMove, (dx, m0) => {
+    const usable = liveUsable(), slack = Math.max(0, usable - 2 * m0.gut - m0.W);
+    if (slack <= 0) { layShowHud('폭을 줄이면 좌우로 이동할 수 있습니다'); return; }
+    const newLeft = Math.max(m0.gut, Math.min(usable - m0.gut - m0.W, m0.left + dx));
+    cfg.edPos = Math.round(Math.max(0, Math.min(100, ((newLeft - m0.gut) / slack) * 100)) * 10) / 10;
+    applyCfg(); layShowHud();
+  });
+  el.colGuideL.addEventListener('dblclick', () => { cfg.wch = DEFAULTS.wch; cfg.edPos = DEFAULTS.edPos; saveCfg(); applyCfg(); });
+  el.colGuideR.addEventListener('dblclick', () => { cfg.wch = DEFAULTS.wch; cfg.edPos = DEFAULTS.edPos; saveCfg(); applyCfg(); });
+  el.colMove.addEventListener('dblclick', () => { cfg.edPos = DEFAULTS.edPos; saveCfg(); applyCfg(); });
+
   // 설정
   $('#btnSettings').onclick = () => {
     $('#fontSel').value = cfg.font; $('#fontCustom').value = cfg.custom; $('#sizeIn').value = cfg.size; $('#lsIn').value = cfg.ls;
-    $('#lhIn').value = cfg.lh; $('#wIn').value = cfg.wch; $('#mdIn').checked = cfg.md !== false; $('#setDlg').showModal();
+    $('#lhIn').value = cfg.lh; $('#wIn').value = cfg.wch; $('#posIn').value = Math.round(cfg.edPos); $('#topIn').value = cfg.padTop; $('#mdIn').checked = cfg.md !== false; $('#setDlg').showModal();
     kvGet('backup').then(h => { $('#bkName').textContent = h ? h.name : '지정 안 됨'; });
   };
   $('#setClose').onclick = () => $('#setDlg').close();
@@ -2511,6 +2770,8 @@ function wire() {
   bind('#lsIn', v => { cfg.ls = num(v, cfg.ls, -0.1, 0.5); });
   bind('#lhIn', v => { cfg.lh = num(v, cfg.lh, 1.2, 3); });
   bind('#wIn', v => { cfg.wch = num(v, cfg.wch, 20, 80); });
+  bind('#posIn', v => { cfg.edPos = num(v, cfg.edPos, 0, 100); });
+  bind('#topIn', v => { cfg.padTop = num(v, cfg.padTop, 8, 140); });
   $('#themeSel').innerHTML = THEMES.map(([k, l, tone, bg, ink, ac]) => `<button type="button" role="radio" data-theme="${k}" title="${l}" style="--tb:${bg};--ti:${ink};--ta:${ac}"><span class="sw"><span class="sw-t">가</span><span class="sw-a"></span></span><span class="sw-l">${l}</span></button>`).join('');
   $('#mdIn').addEventListener('change', () => { cfg.md = $('#mdIn').checked; saveCfg(); mdApply(); });
   $('#themeSel').addEventListener('click', e => { const b = e.target.closest('button[data-theme]'); if (!b) return; cfg.theme = b.dataset.theme; saveCfg(); applyCfg(); });
@@ -2568,7 +2829,7 @@ async function boot() {
     clearTimeout(loadTimer);
   }
 }
-window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot };
+window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot, LAY, LAY_PRESETS, columnMetrics, layoutColumn, applyCfg, openLayout, closeLayout };
 boot();
 })();
 </script>
