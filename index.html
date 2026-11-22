@@ -194,6 +194,12 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .item::selection{background:var(--sel-bg);color:var(--sel-ink)}
 .emptystate{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center;padding:24px}
 .meter{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;height:var(--foot-h);padding:0 14px 0 18px;border-top:1px solid var(--line);background:var(--bg);container-type:inline-size;overflow:hidden;white-space:nowrap}
+.meter .left{grid-column:1;justify-self:start;display:flex;align-items:center;gap:8px;min-width:0}
+.meter-btn{border:0;background:var(--hover);border-radius:8px;padding:4px 10px;font-size:13px;color:var(--ink)}
+.meter-btn:hover{filter:brightness(.95)}
+:root[data-tone="dark"] .meter-btn:hover{filter:brightness(1.18)}
+.meter-btn.on{background:var(--accent);color:var(--accent-ink)}
+.meter .exc-n{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
 .meter .counts{grid-column:2;display:flex;align-items:baseline;gap:28px}
 .meter .right{grid-column:3;justify-self:end;display:flex;align-items:center;gap:6px}
 .meter .cell{display:flex;align-items:baseline;gap:8px}
@@ -203,8 +209,9 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .meter .cell.sel b{font-size:17px}
 .status{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
 /* 창이 좁아져도 한 줄 유지 */
-@container (max-width: 700px){.meter .lbl .full{display:none}.meter .lbl .short{display:inline}.meter .counts{gap:18px}.meter b{font-size:21px}}
-@container (max-width: 520px){.meter{grid-template-columns:auto 1fr;gap:10px;padding-left:12px}.meter .counts{grid-column:1;gap:12px}.meter .right{grid-column:2}.meter b{font-size:19px}.meter .cell.sel b{font-size:15px}.status{font-size:13.5px}}
+@container (max-width: 820px){.meter .exc-n{display:none!important}}
+@container (max-width: 700px){.meter .lbl .full{display:none}.meter .lbl .short{display:inline}.meter .counts{gap:18px}.meter b{font-size:21px}.meter-btn{padding:4px 8px;font-size:12.5px}}
+@container (max-width: 560px){.meter{grid-template-columns:auto 1fr;gap:10px;padding-left:12px}.meter .left{display:none}.meter .counts{grid-column:1;gap:12px}.meter .right{grid-column:2}.meter b{font-size:19px}.meter .cell.sel b{font-size:15px}.status{font-size:13.5px}}
 @container (max-width: 380px){.meter .cell.sel{display:none!important}.meter .lbl{font-size:12px}}
 /* 맨 위/맨 아래 이동 버튼 */
 .paper{position:relative}
@@ -252,6 +259,7 @@ input.title{font-family:var(--ed-font);font-size:1.25em;font-weight:700;letter-s
 .mdv .cb.on::before{background:var(--accent);border-color:var(--accent)}
 .mdv .cb.on::after{content:"";position:absolute;left:.44em;top:50%;width:.2em;height:.4em;border:solid var(--accent-ink);border-width:0 .1em .1em 0;transform:translate(-50%,-62%) rotate(45deg)}
 .mdv .done{color:var(--muted);-webkit-text-stroke:0 transparent;text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
+.mdv .exc{color:var(--muted);-webkit-text-stroke:0 transparent;background:color-mix(in srgb, var(--muted) 11%, transparent);border-radius:3px}
 .body.md{color:transparent;-webkit-text-fill-color:transparent;-webkit-text-stroke:0 transparent}
 .body.md::selection{color:transparent;-webkit-text-fill-color:transparent;background:color-mix(in srgb, var(--sel-bg) 60%, transparent)}
 .body.md::placeholder{-webkit-text-fill-color:var(--muted);color:var(--muted);opacity:.8;-webkit-text-stroke:0 transparent}
@@ -377,7 +385,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
       <button id="btnRoot" class="pill" title="작업 폴더 바꾸기"></button>
       <span class="split pill-group"><button id="btnBackup" title="작업 폴더 전체를 백업 폴더로 복사합니다">백업</button><button id="btnBackupWhere" title="백업 폴더 바꾸기">위치 변경</button></span>
       <div class="spacer"></div>
-      <button id="btnCopyBody" class="pill" disabled title="#태그와 마크다운 기호(**, ~~, 체크 줄)를 뺀 본문을 복사합니다">본문 복사</button>
+      <button id="btnCopyBody" class="pill" disabled title="#태그와 마크다운 기호(**, ~~, 체크 줄, %%제외 구역%%)를 뺀 본문을 복사합니다">본문 복사</button>
       <button id="btnFind" class="ib" title="찾기·바꾸기 (Ctrl/Cmd+F)" aria-label="찾기·바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.8"/><path d="M15 15l4.8 4.8"/></svg></button>
       <button id="btnRef" class="ib" title="참고 창 (읽기 전용으로 다른 화 옆에 띄우기) · 목록에서 화를 우클릭하거나 Alt/Option+클릭" aria-label="참고 창" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M13.5 4.5v15M15.8 8.5h2.4M15.8 11.5h2.4M15.8 14.5h2.4"/></svg></button>
       <button id="btnTW" class="ib" title="타자기 모드: 지금 쓰는 줄을 화면 가운데에 고정" aria-label="타자기 모드" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9V3.8h8V9"/><path d="M4 9h16"/><rect x="3.5" y="11.2" width="17" height="8.6" rx="2.2"/><path d="M7.6 14.3h.01M10.5 14.3h.01M13.5 14.3h.01M16.4 14.3h.01" stroke-width="2.2"/><path d="M9 17.3h6"/></svg></button>
@@ -486,9 +494,13 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     </div>
 
     <footer class="meter" id="meter" hidden>
+      <div class="left">
+        <button type="button" class="meter-btn" id="btnExclude" title="블록으로 고른 부분이나 지금 줄을 글자 수·본문 복사에서 제외/해제 (%% ... %%) · Ctrl/Cmd+/" aria-label="글자 수 제외 구역 토글" aria-pressed="false">제외 구역</button>
+        <span class="exc-n" id="cExc" hidden title="%% ... %% 구역에 있어 글자 수와 본문 복사에서 빠진 글자 수"></span>
+      </div>
       <div class="counts">
-        <div class="cell" title="줄바꿈과 #태그, 마크다운 기호(**, ~~, 체크 줄)는 세지 않습니다"><span class="lbl"><span class="full">공백 포함</span><span class="short">포함</span></span><b id="cWith">0</b></div>
-        <div class="cell" title="공백과 문장부호·특수문자(. , &quot; ? ! … 등)를 빼고 글자와 숫자만 셉니다 (노벨피아 기준). 줄바꿈과 #태그도 세지 않습니다."><span class="lbl"><span class="full">공백 제외</span><span class="short">제외</span></span><b id="cWithout">0</b></div>
+        <div class="cell" title="줄바꿈과 #태그, 마크다운 기호(**, ~~, 체크 줄, %%제외 구역%%)는 세지 않습니다"><span class="lbl"><span class="full">공백 포함</span><span class="short">포함</span></span><b id="cWith">0</b></div>
+        <div class="cell" title="공백과 문장부호·특수문자(. , &quot; ? ! … 등)를 빼고 글자와 숫자만 셉니다 (노벨피아 기준). 줄바꿈·#태그·%%제외 구역%%도 세지 않습니다."><span class="lbl"><span class="full">공백 제외</span><span class="short">제외</span></span><b id="cWithout">0</b></div>
         <div class="cell sel" id="cSelCell" hidden title="선택한 부분의 글자 수 (공백 포함 / 공백 제외)"><span class="lbl"><span class="full">선택 영역</span><span class="short">선택</span></span><b id="cSel"></b></div>
       </div>
       <div class="right">
@@ -527,7 +539,7 @@ dialog .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-w
     <label for="wIn">한 줄 글자 수</label><input id="wIn" type="number" min="20" max="80" step="1">
     <label for="posIn">가로 위치(%)</label><input id="posIn" type="number" min="0" max="100" step="1" title="0: 왼쪽, 50: 가운데, 100: 오른쪽">
     <label for="topIn">위쪽 여백(px)</label><input id="topIn" type="number" min="8" max="140" step="2">
-    <label for="mdIn">마크다운</label><label class="chkrow"><input id="mdIn" type="checkbox"> **굵게** ~~취소선~~ - [ ] 체크를 화면에서 모양으로 보기</label>
+    <label for="mdIn">마크다운</label><label class="chkrow"><input id="mdIn" type="checkbox"> **굵게** ~~취소선~~ - [ ] 체크 %%제외%%를 화면에서 모양으로 보기</label>
     <label id="themeLbl">테마</label>
     <div class="themes" id="themeSel" role="radiogroup" aria-labelledby="themeLbl"></div>
     <label>백업 폴더</label><div class="bkrow"><span id="bkName">지정 안 됨</span><button id="bkChange" type="button">변경</button></div>
@@ -566,8 +578,61 @@ const Core = (() => {
     return Array.from(s).length;
   }
 
-  function extractTags(text) {
+  // 글자 수·본문 복사 제외 구역: %% ... %% (한 줄 일부 또는 여러 줄 블록, 짝이 맞은 것만)
+  function excludedRanges(text) {
+    const t = String(text);
+    if (!t.includes('%%')) return [];
+    const ranges = [], re = /%%[\s\S]*?%%/g;
+    let m;
+    while ((m = re.exec(t))) ranges.push([m.index, m.index + m[0].length]);
+    return ranges;
+  }
+  function stripExcluded(text) {
     const t = norm(text);
+    const ranges = excludedRanges(t);
+    if (!ranges.length) return t;
+    const MARK = '\u0000';
+    let out = '', prev = 0;
+    for (const [a, b] of ranges) { out += t.slice(prev, a) + MARK; prev = b; }
+    out += t.slice(prev);
+    const kept = [];
+    for (const line of out.split('\n')) {
+      if (!line.includes(MARK)) { kept.push(line); continue; }
+      const s = line.replace(/([ \t]*)\u0000+([ \t]*)/g, (m, pre, post, off, str) => {
+        if (off === 0 || off + m.length === str.length) return '';
+        return (pre && post) ? ' ' : (pre || post);
+      });
+      if (s.trim() === '') continue;
+      kept.push(s);
+    }
+    return kept.join('\n');
+  }
+  function countExcluded(text) {
+    const t = norm(text);
+    const ranges = excludedRanges(t);
+    if (!ranges.length) return 0;
+    let n = 0;
+    for (const [a, b] of ranges) n += gcount(t.slice(a + 2, b - 2).replace(/\n/g, '').trim());
+    return n;
+  }
+  function sliceWithoutExcluded(fullText, a, b) {
+    if (a >= b) return '';
+    const ranges = excludedRanges(fullText);
+    if (!ranges.length) return fullText.slice(a, b);
+    let out = '', cur = a;
+    for (const [rs, re] of ranges) {
+      if (re <= cur) continue;
+      if (rs >= b) break;
+      if (rs > cur) out += fullText.slice(cur, rs);
+      out += '%%%%';
+      cur = Math.max(cur, Math.min(b, re));
+    }
+    if (cur < b) out += fullText.slice(cur, b);
+    return out;
+  }
+
+  function extractTags(text) {
+    const t = stripExcluded(text);
     const seen = new Set();
     const out = [];
     for (const m of t.matchAll(tagRe())) {
@@ -577,7 +642,7 @@ const Core = (() => {
     return out;
   }
 
-  // 마크다운(화면에서만 모양): **굵게**, ~~취소선~~, - [ ] 체크 줄
+  // 마크다운(화면에서만 모양): **굵게**, ~~취소선~~, - [ ] 체크 줄, %%제외 구역%%
   const CB_RE = /^([ \t]*)([-*+])([ \t]+)\[([ xX])\](.*)$/;
   const MD_RE = () => /\*\*(?=\S)(.+?)(?<=\S)\*\*|~~(?=\S)(.+?)(?<=\S)~~/g;
   function stripMd(line) {
@@ -585,9 +650,9 @@ const Core = (() => {
     do { prev = line; line = line.replace(MD_RE(), (m, a, b) => a !== undefined ? a : b); } while (line !== prev); // 겹친 것(**~~가~~**)까지
     return line;
   }
-  // 연재 사이트에 붙여 넣을 본문: #태그를 지우고, 태그만 있던 줄은 없앤다. 마크다운 기호도 지우고 체크 줄은 뺀다.
+  // 연재 사이트에 붙여 넣을 본문: %%제외 구역%%과 #태그를 지우고, 마크다운 기호도 지우며 체크 줄은 뺀다.
   function cleanForPost(text) {
-    const lines = norm(text).split('\n');
+    const lines = stripExcluded(text).split('\n');
     const out = [];
     for (let line of lines) {
       if (CB_RE.test(line)) continue;
@@ -682,7 +747,7 @@ const Core = (() => {
     if (rawHead && normTags(rawHead) === h) return rawHead.endsWith('\n') || !body ? rawHead + body : rawHead + '\n' + body;
     return h + '\n' + body;
   }
-  return { nameKey, norm, gcount, extractTags, cleanForPost, countText, sanitizeName, nextTitle, compare, matchDoc, makeDoc, decodeBytes, splitHead, normTags, joinHead, CB_RE, MD_RE, stripMd };
+  return { nameKey, norm, gcount, excludedRanges, stripExcluded, countExcluded, sliceWithoutExcluded, extractTags, cleanForPost, countText, sanitizeName, nextTitle, compare, matchDoc, makeDoc, decodeBytes, splitHead, normTags, joinHead, CB_RE, MD_RE, stripMd };
 })();
 /*CORE-END*/
 
@@ -701,7 +766,7 @@ const el = {
   btnTW: $('#btnTW'), twLine: $('#twLine'), btnSort: $('#btnSort'), btnTags: $('#btnTags'), tagPanel: $('#tagPanel'), btnFind: $('#btnFind'), findBar: $('#findBar'), fq: $('#fq'), fr: $('#fr'), fCount: $('#fCount'),
   fPrev: $('#fPrev'), fNext: $('#fNext'), fToggle: $('#fToggle'), fClose: $('#fClose'), fRepRow: $('#fRepRow'), fRep: $('#fRep'), fAll: $('#fAll'), fHl: $('#fHl'), mdl: $('#mdl'), btnRef: $('#btnRef'), refPane: $('#refPane'), refSplit: $('#refSplit'), refSel: $('#refSel'), refN: $('#refN'), refClose: $('#refClose'), refScroll: $('#refScroll'), refBody: $('#refBody'), workArea: $('#workArea'), ctxMenu: $('#ctxMenu'), btnCopyBody: $('#btnCopyBody'), btnSettings: $('#btnSettings'),
   banner: $('#banner'), emptyState: $('#emptyState'), emptyMsg: $('#emptyMsg'), paper: $('#paper'),
-  title: $('#title'), tags: $('#tags'), body: $('#body'), meter: $('#meter'), cWith: $('#cWith'), cWithout: $('#cWithout'),
+  title: $('#title'), tags: $('#tags'), body: $('#body'), meter: $('#meter'), btnExclude: $('#btnExclude'), cExc: $('#cExc'), cWith: $('#cWith'), cWithout: $('#cWithout'),
   cSelCell: $('#cSelCell'), cSel: $('#cSel'), status: $('#status'), btnSave: $('#btnSave'), toast: $('#toast'), jump: $('#jump'), btnTop: $('#btnTop'), btnBottom: $('#btnBottom')
 };
 
@@ -1209,8 +1274,14 @@ function showEditor(on) {
 }
 function updateLive() {
   if (!S.cur) return;
-  const c = Core.countText(el.body.value); // 태그 줄은 어차피 세지 않으므로 본문만
+  const v = el.body.value;
+  const c = Core.countText(v); // 태그 줄·제외 구역은 어차피 세지 않으므로 본문만
   el.cWith.textContent = fmt(c.withSpaces); el.cWithout.textContent = fmt(c.noSpaces);
+  if (el.cExc) {
+    const ex = Core.countExcluded(v);
+    el.cExc.hidden = !ex;
+    if (ex) el.cExc.textContent = `제외 ${fmt(ex)}자`;
+  }
   S.cur.counts = c; S.cur.tags = Core.extractTags(fileText());
   clearTimeout(S.listTimer); S.listTimer = setTimeout(renderList, 350);
   updateJump();
@@ -1227,9 +1298,15 @@ function jumpTo(end) {
   if (cfg.typewriter) twCenter(); else b.scrollTop = end ? b.scrollHeight : 0;
 }
 function updateSelection() {
-  const a = el.body.selectionStart, b = el.body.selectionEnd;
-  if (a === b) { el.cSelCell.hidden = true; return; }
-  const c = Core.countText(el.body.value.slice(a, b));
+  const b = el.body, a = b.selectionStart, z = b.selectionEnd, v = b.value;
+  if (el.btnExclude) {
+    const inEx = typeof mdInExcluded === 'function' && !!mdInExcluded(v, a, z);
+    el.btnExclude.classList.toggle('on', inEx);
+    el.btnExclude.setAttribute('aria-pressed', String(inEx));
+    el.btnExclude.textContent = inEx ? '제외 해제' : '제외 구역';
+  }
+  if (a === z) { el.cSelCell.hidden = true; return; }
+  const c = Core.countText(Core.sliceWithoutExcluded(v, a, z));
   el.cSel.textContent = `${fmt(c.withSpaces)} / ${fmt(c.noSpaces)}`; el.cSelCell.hidden = false;
 }
 /* ---------- 집필 화면 배치·크기 조절 (타이핑 위치 · 가로 폭 · 여백 · 안내선) ---------- */
@@ -1646,20 +1723,75 @@ function mdLine(t) {
   const on = c[4] !== ' ';
   return `${esc(c[1])}<span class="mk cbdash">${esc(c[2])}</span>${esc(c[3])}<span class="cb${on ? ' on' : ''}">[${esc(c[4])}]</span>${esc(/^[ \t]*/.exec(c[5])[0])}<span class="${on ? 'done' : ''}">${mdInline(c[5].replace(/^[ \t]*/, ''))}</span>`;
 }
-// 바뀐 줄만 다시 그린다(긴 원고에서도 가볍게)
+// 제외 구역(%%...%%)이 걸친 줄을 정확히 글자 수 변동 없이 렌더링한다
+function mdLineExcluded(line, lineStart, ranges, riStart) {
+  if (!line) return '';
+  const lineEnd = lineStart + line.length;
+  let out = '', cur = lineStart;
+  for (let i = riStart; i < ranges.length; i++) {
+    const [rs, re] = ranges[i];
+    if (rs >= lineEnd) break;
+    if (re <= cur) continue;
+    if (rs > cur) out += mdInline(line.slice(cur - lineStart, rs - lineStart));
+    const openA = Math.max(cur, rs), openB = Math.min(lineEnd, rs + 2);
+    if (openB > openA) out += `<span class="mk">${esc(line.slice(openA - lineStart, openB - lineStart))}</span>`;
+    const bodyA = Math.max(cur, rs + 2), bodyB = Math.min(lineEnd, re - 2);
+    if (bodyB > bodyA) out += `<span class="exc">${esc(line.slice(bodyA - lineStart, bodyB - lineStart))}</span>`;
+    const closeA = Math.max(cur, Math.max(rs + 2, re - 2)), closeB = Math.min(lineEnd, re);
+    if (closeB > closeA) out += `<span class="mk">${esc(line.slice(closeA - lineStart, closeB - lineStart))}</span>`;
+    cur = Math.min(lineEnd, re);
+  }
+  if (cur < lineEnd) out += mdInline(line.slice(cur - lineStart));
+  return out;
+}
+function mdBuildLines(fullText) {
+  const raw = fullText.split('\n');
+  const ranges = Core.excludedRanges(fullText);
+  if (!ranges.length) return { raw, keys: raw, ranges, starts: null, ridx: null };
+  const keys = new Array(raw.length), starts = new Array(raw.length), ridx = new Array(raw.length);
+  let off = 0, ri = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ln = raw[i], end = off + ln.length;
+    starts[i] = off;
+    while (ri < ranges.length && ranges[ri][1] <= off) ri++;
+    if (ri < ranges.length && ranges[ri][0] < end) {
+      ridx[i] = ri;
+      let sig = ln + '\x00';
+      for (let j = ri; j < ranges.length && ranges[j][0] < end; j++) {
+        sig += (ranges[j][0] - off) + ':' + (ranges[j][1] - off) + ',';
+      }
+      keys[i] = sig;
+    } else {
+      ridx[i] = -1;
+      keys[i] = ln;
+    }
+    off = end + 1;
+  }
+  return { raw, keys, ranges, starts, ridx };
+}
+function mdRenderOne(st, i) {
+  return (st.ridx && st.ridx[i] >= 0) ? mdLineExcluded(st.raw[i], st.starts[i], st.ranges, st.ridx[i]) : mdLine(st.raw[i]);
+}
+function mdRenderAll(fullText) {
+  const st = mdBuildLines(fullText);
+  let out = '';
+  for (let i = 0; i < st.raw.length; i++) out += mdRenderOne(st, i) + '\n';
+  return out;
+}
+// 바뀐 줄(또는 제외 구역 상태가 바뀐 줄)만 다시 그린다(긴 원고에서도 가볍게)
 function mdSync() {
   if (!MD.on) return;
-  const lines = el.body.value.split('\n'), old = MD.lines, box = el.mdl, kids = box.children;
+  const st = mdBuildLines(el.body.value), lines = st.keys, old = MD.lines, box = el.mdl, kids = box.children;
   let a = 0; const n = Math.min(old.length, lines.length);
   while (a < n && old[a] === lines[a]) a++;
   let z = 0;
   while (z < n - a && old[old.length - 1 - z] === lines[lines.length - 1 - z]) z++;
   const oldEnd = old.length - z, newEnd = lines.length - z, common = Math.min(oldEnd - a, newEnd - a);
-  for (let i = 0; i < common; i++) kids[a + i].innerHTML = mdLine(lines[a + i]) + '\n';
+  for (let i = 0; i < common; i++) kids[a + i].innerHTML = mdRenderOne(st, a + i) + '\n';
   for (let i = oldEnd - 1; i >= a + common; i--) kids[i].remove();
   if (newEnd > a + common) {
     const frag = document.createDocumentFragment();
-    for (let i = a + common; i < newEnd; i++) { const d = document.createElement('span'); d.innerHTML = mdLine(lines[i]) + '\n'; frag.appendChild(d); }
+    for (let i = a + common; i < newEnd; i++) { const d = document.createElement('span'); d.innerHTML = mdRenderOne(st, i) + '\n'; frag.appendChild(d); }
     box.insertBefore(frag, kids[a + common] || null);
   }
   MD.lines = lines;
@@ -1684,6 +1816,67 @@ function mdWrap(mk) {
   const sel = v.slice(s, e);
   if (sel.length > 2 * k && sel.startsWith(mk) && sel.endsWith(mk)) { bodyEdit(v.slice(0, s) + sel.slice(k, -k) + v.slice(e), s, e - 2 * k); return; }
   bodyEdit(v.slice(0, s) + mk + sel + mk + v.slice(e), s + k, e + k);
+}
+// 제외 구역(%%...%%): 커서나 선택이 안에 있으면 해제, 아니면 블록/줄을 감싸 글자 수·본문 복사에서 제외한다
+function mdInExcluded(v, s, e) {
+  for (const [a, z] of Core.excludedRanges(v)) {
+    if (a <= s && e <= z) return [a, z];
+  }
+  return null;
+}
+function mdToggleExclude() {
+  if (!S.cur || el.paper.hidden) return;
+  const b = el.body, v = b.value;
+  let s = b.selectionStart, e = b.selectionEnd;
+  b.focus({ preventScroll: true });
+  const hit = mdInExcluded(v, s, e);
+  if (hit) {
+    const [a, z] = hit;
+    let inner = v.slice(a + 2, z - 2);
+    const block = inner.startsWith('\n') && inner.endsWith('\n');
+    if (block) inner = inner.slice(1, -1);
+    const nv = v.slice(0, a) + inner + v.slice(z);
+    if (s === e) {
+      const np = Math.max(a, Math.min(a + inner.length, s - (block ? 3 : 2)));
+      bodyEdit(nv, np, np);
+    } else {
+      bodyEdit(nv, a, a + inner.length);
+    }
+    return;
+  }
+  if (s < e) {
+    if (v.slice(s, e).includes('\n')) {
+      let e0 = e;
+      if (e0 > s && v[e0 - 1] === '\n') e0--;
+      const ls = v.lastIndexOf('\n', s - 1) + 1;
+      let le = v.indexOf('\n', e0); if (le < 0) le = v.length;
+      if (v.slice(ls, s).trim() === '' && v.slice(e0, le).trim() === '') {
+        const block = v.slice(ls, le);
+        bodyEdit(v.slice(0, ls) + '%%\n' + block + '\n%%' + v.slice(le), ls + 3, ls + 3 + block.length);
+      } else {
+        const sel = v.slice(s, e0);
+        bodyEdit(v.slice(0, s) + '%%' + sel + '%%' + v.slice(e0), s + 2, s + 2 + sel.length);
+      }
+      return;
+    }
+    while (s < e && /\s/.test(v[s])) s++;
+    while (e > s && /\s/.test(v[e - 1])) e--;
+    if (s < e) {
+      const sel = v.slice(s, e);
+      bodyEdit(v.slice(0, s) + '%%' + sel + '%%' + v.slice(e), s + 2, s + 2 + sel.length);
+      return;
+    }
+  }
+  const ls = v.lastIndexOf('\n', s - 1) + 1;
+  let le = v.indexOf('\n', s); if (le < 0) le = v.length;
+  const line = v.slice(ls, le);
+  if (!line.trim()) {
+    bodyEdit(v.slice(0, ls) + '%%\n\n%%' + v.slice(le), ls + 3, ls + 3);
+  } else {
+    const ind = /^[ \t]*/.exec(line)[0].length;
+    const content = line.slice(ind);
+    bodyEdit(v.slice(0, ls + ind) + '%%' + content + '%%' + v.slice(le), Math.max(ls + ind + 2, s + 2), Math.max(ls + ind + 2, s + 2));
+  }
 }
 // pos가 있는 줄이 체크 줄이면 그 머리('- [ ] ')의 시작(들여쓰기 뒤)과 끝(글 시작)
 function mdPrefix(v, pos) {
@@ -1737,8 +1930,7 @@ function refRender() {
   else {
     const { head, body } = Core.splitHead(REF.text);
     const tags = head.trim();
-    const lines = body.split('\n');
-    el.refBody.innerHTML = (tags ? `<span class="ref-tags">${esc(Core.norm(tags))}</span>` : '') + lines.map(l => (MD.on ? mdLine(l) : esc(l)) + '\n').join('');
+    el.refBody.innerHTML = (tags ? `<span class="ref-tags">${esc(Core.norm(tags))}</span>` : '') + (MD.on ? mdRenderAll(body) : esc(body));
     el.refN.textContent = fmt(Core.countText(REF.text).withSpaces) + '자';
   }
   el.refScroll.scrollTop = top;
@@ -2655,6 +2847,7 @@ function wire() {
     if (e.ctrlKey && !e.metaKey && e.code === 'KeyY') { e.preventDefault(); unRedo(); return; }
     if (mod && !e.shiftKey && e.code === 'KeyB') { e.preventDefault(); mdWrap('**'); return; }
     if (mod && e.shiftKey && e.code === 'KeyX') { e.preventDefault(); mdWrap('~~'); return; }
+    if (mod && !e.shiftKey && e.code === 'Slash') { e.preventDefault(); mdToggleExclude(); return; }
     if (mod && e.key === 'Enter') { e.preventDefault(); mdToggleLine(el.body.selectionStart, false); return; }
     if (/^(Arrow|Page|Home|End)/.test(e.key)) UN.force = true; // 커서를 옮기면 다음 입력은 새 묶음
   });
@@ -2668,13 +2861,15 @@ function wire() {
   ['keyup', 'mouseup', 'select'].forEach(ev => el.body.addEventListener(ev, unSyncCaret));
   ['select', 'keyup', 'mouseup', 'focus'].forEach(ev => el.body.addEventListener(ev, updateSelection));
   ['scroll', 'keyup', 'mouseup'].forEach(ev => el.body.addEventListener(ev, schedulePos, { passive: true }));
+  el.btnExclude.addEventListener('mousedown', e => e.preventDefault()); // 버튼 눌러도 본문 선택 블록이 풀리지 않게
+  el.btnExclude.onclick = mdToggleExclude;
   el.title.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); el.body.focus(); } });
   el.title.addEventListener('blur', () => {
     const s = Core.sanitizeName(el.title.value);
     if (s && s !== el.title.value) { el.title.value = s; onEdit(); }
   });
   el.btnSave.onclick = () => saveNow(true);
-  el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그·마크다운 기호 제외)' : '복사하지 못했습니다'); };
+  el.btnCopyBody.onclick = async () => { toast((await copyText(Core.cleanForPost(el.body.value))) ? '본문을 복사했습니다 (#태그·제외 구역·마크다운 기호 제외)' : '복사하지 못했습니다'); };
   // 작품 안 화 탐색: 윈도우 Ctrl+Alt+↑/↓, 맥 Ctrl+Cmd+↑/↓ (다른 단축키·입력 칸과 충돌하지 않게 캡처 단계에서 처리)
   document.addEventListener('keydown', e => {
     const dir = isDocNavKey(e);
@@ -2853,7 +3048,7 @@ async function boot() {
     clearTimeout(loadTimer);
   }
 }
-window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot, LAY, LAY_PRESETS, INK_LEVELS, columnMetrics, layoutColumn, applyCfg, openLayout, closeLayout };
+window.__writer = { TW, twCaretY, twToggle, runBackup, checkExternal, cfg, S, Core, saveNow, openDoc, stepDoc, visibleDocs, isMacOS, isDocNavKey, newDoc, selectWork, deleteWork, renameWork, deleteSelected, refreshAll, changeRoot, LAY, LAY_PRESETS, INK_LEVELS, columnMetrics, layoutColumn, applyCfg, openLayout, closeLayout, mdToggleExclude };
 boot();
 })();
 </script>
